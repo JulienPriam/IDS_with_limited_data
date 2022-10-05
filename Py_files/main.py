@@ -7,7 +7,7 @@ ipcounter = 0
 tcpcounter = 0
 udpcounter = 0
 
-filename = '/home/eii/Documents/Strathclyde/Strath_Project/Dataset/Thursday-WorkingHours.pcap'
+filename = '/home/eii/Téléchargements/smallFlows.pcap'
 
 for ts, pkt in dpkt.pcap.Reader(open(filename, 'r')):
 
