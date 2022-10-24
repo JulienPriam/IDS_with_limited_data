@@ -1,1 +1,5 @@
 Dataset/*
+Py_files/__pycache__
+Py_files/venv
+Py_files/.idea
+
