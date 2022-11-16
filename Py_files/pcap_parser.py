@@ -9,8 +9,8 @@ from dpkt.utils import inet_to_str
 
 start_time = time.time()
 
-# file_path = '/home/eii/Documents/Strathclyde/Project_test/Dataset/smallFlows.pcap'
-file_path = '/home/eii/Documents/Strathclyde/Strath_Project/Dataset/Thursday-WorkingHours2.pcap'
+# file_path = '/home/julien/Documents/Strath_Project/Dataset_test/smallFlows.pcap'
+file_path = '/home/julien/Documents/Strath_Project/Dataset/Tuesday-WorkingHours_split_conv.pcap'
 global_t0 = 0
 
 
@@ -67,6 +67,7 @@ for timestamp, buf in pcap_file:
 
     # Now unpack the data within the Ethernet frame (the IP packet)
     ip = eth.data
+
     if isinstance(ip.data, dpkt.icmp.ICMP):
         continue
 
@@ -81,6 +82,8 @@ for timestamp, buf in pcap_file:
     ip_src_list.append(inet_to_str(ip.src))
     ip_dst_list.append(inet_to_str(ip.dst))
     ip_len_list.append(len(eth.data))
+
+
 
     if isinstance(ip.data, dpkt.tcp.TCP):
         tcp = ip.data
@@ -160,47 +163,51 @@ print(flow_list_dict[1])
 
 meta_list_time_0 = []
 
-ip_src_list = []
-ip_dst_list = []
-prt_src_list = []
-prt_dst_list = []
-proto_list = []
-num_pkts_list = []
-mean_iat_list = []
-std_iat_list = []
-min_iat_list = []
-max_iat_list = []
-mean_offset_list = []
-mean_pkt_len_list = []
-std_pkt_len_list = []
-min_pkt_len_list = []
-max_pkt_len_list = []
-num_bytes_list = []
-num_psh_flags_list = []
-num_rst_flags_list = []
-num_urg_flags_list = []
-processed_list = []
+t_start_list_uni = []
+t_end_list_uni = []
+ip_src_list_uni = []
+ip_dst_list_uni = []
+prt_src_list_uni = []
+prt_dst_list_uni = []
+proto_list_uni = []
+num_pkts_list_uni = []
+mean_iat_list_uni = []
+std_iat_list_uni = []
+min_iat_list_uni = []
+max_iat_list_uni = []
+mean_offset_list_uni = []
+mean_pkt_len_list_uni = []
+std_pkt_len_list_uni = []
+min_pkt_len_list_uni = []
+max_pkt_len_list_uni = []
+num_bytes_list_uni = []
+num_psh_flags_list_uni = []
+num_rst_flags_list_uni = []
+num_urg_flags_list_uni = []
+processed_list_uni = []
 
-uniflow_dict = {'ip_src': ip_src_list,
-                'ip_dst': ip_dst_list,
-                'prt_src': prt_src_list,
-                'prt_dst': prt_dst_list,
-                'proto': proto_list,
-                'num_pkts': num_pkts_list,
-                'mean_iat': mean_iat_list,
-                'std_iat': std_iat_list,
-                'min_iat': min_iat_list,
-                'max_iat': max_iat_list,
-                'mean_offset': mean_offset_list,
-                'mean_pkt_len': mean_pkt_len_list,
-                'std_pkt_len': std_pkt_len_list,
-                'min_pkt_len': min_pkt_len_list,
-                'max_pkt_len': max_pkt_len_list,
-                'num_bytes': num_bytes_list,
-                'num_psh_flags': num_psh_flags_list,
-                'num_rst_flags': num_rst_flags_list,
-                'num_urg_flags': num_urg_flags_list,
-                'processed': processed_list}
+uniflow_dict = {'t_start': t_start_list_uni,
+                't_end': t_end_list_uni,
+                'ip_src': ip_src_list_uni,
+                'ip_dst': ip_dst_list_uni,
+                'prt_src': prt_src_list_uni,
+                'prt_dst': prt_dst_list_uni,
+                'proto': proto_list_uni,
+                'num_pkts': num_pkts_list_uni,
+                'mean_iat': mean_iat_list_uni,
+                'std_iat': std_iat_list_uni,
+                'min_iat': min_iat_list_uni,
+                'max_iat': max_iat_list_uni,
+                'mean_offset': mean_offset_list_uni,
+                'mean_pkt_len': mean_pkt_len_list_uni,
+                'std_pkt_len': std_pkt_len_list_uni,
+                'min_pkt_len': min_pkt_len_list_uni,
+                'max_pkt_len': max_pkt_len_list_uni,
+                'num_bytes': num_bytes_list_uni,
+                'num_psh_flags': num_psh_flags_list_uni,
+                'num_rst_flags': num_rst_flags_list_uni,
+                'num_urg_flags': num_urg_flags_list_uni,
+                'processed': processed_list_uni}
 
 for index in flow_list_dict:
     flow_list = flow_list_dict[index]
@@ -218,46 +225,50 @@ for index in flow_list_dict:
         rst_list.append(packet[9])
         urg_list.append(packet[10])
 
-    ip_src_list.append(flow_list_dict[index][0][0])
-    ip_dst_list.append(flow_list_dict[index][0][1])
-    prt_src_list.append(flow_list_dict[index][0][2])
-    prt_dst_list.append(flow_list_dict[index][0][3])
-    proto_list.append(flow_list_dict[index][0][4])
+    ip_src_list_uni.append(flow_list_dict[index][0][0])
+    ip_dst_list_uni.append(flow_list_dict[index][0][1])
+    prt_src_list_uni.append(flow_list_dict[index][0][2])
+    prt_dst_list_uni.append(flow_list_dict[index][0][3])
+    proto_list_uni.append(flow_list_dict[index][0][4])
     num_pkts = len(flow_list_dict[index])
-    num_pkts_list.append(num_pkts)
-    mean_pkt_len_list.append(sum(length_list) / num_pkts)
+    num_pkts_list_uni.append(num_pkts)
+    mean_pkt_len_list_uni.append(sum(length_list) / num_pkts)
     pkt_len_arry = np.array(length_list)
-    std_pkt_len_list.append(float(np.std(pkt_len_arry)))
-    min_pkt_len_list.append(float(min(pkt_len_arry)))
-    max_pkt_len_list.append(float(max(pkt_len_arry)))
-    num_bytes_list.append(sum(length_list))
-    num_psh_flags_list.append(sum(psh_list))
-    num_rst_flags_list.append(sum(rst_list))
-    num_urg_flags_list.append(sum(urg_list))
-    processed_list.append(False)
+    std_pkt_len_list_uni.append(float(np.std(pkt_len_arry)))
+    min_pkt_len_list_uni.append(float(min(pkt_len_arry)))
+    max_pkt_len_list_uni.append(float(max(pkt_len_arry)))
+    num_bytes_list_uni.append(sum(length_list))
+    num_psh_flags_list_uni.append(sum(psh_list))
+    num_rst_flags_list_uni.append(sum(rst_list))
+    num_urg_flags_list_uni.append(sum(urg_list))
+    processed_list_uni.append(False)
 
     if num_pkts > 1:
         time_list.sort(reverse=True)  # put times in descending order
+        t_end_list_uni.append(time_list[0])
         t_diff = abs(np.diff(time_list))
-        mean_iat_list.append(sum(t_diff) / (num_pkts - 1))
-        std_iat_list.append(np.std(t_diff))  # std dev of IAT
-        min_iat_list.append(min(t_diff))
-        max_iat_list.append(max(t_diff))
+        mean_iat_list_uni.append(sum(t_diff) / (num_pkts - 1))
+        std_iat_list_uni.append(np.std(t_diff))  # std dev of IAT
+        min_iat_list_uni.append(min(t_diff))
+        max_iat_list_uni.append(max(t_diff))
         # Kenzi's apparently good feature is the mean time between the first
         # packet and each sucessive packet: (t2-t1) + (t3-t1) + (t4-t1) / n
         time_list.sort()  # sort into ascending order now
+        t_start_list_uni.append(time_list[0])
         t0 = time_list[0]
         time_total = 0.0
         for f in range(1, num_pkts):
             time_total += abs(t0 - time_list[f])
-        mean_offset_list.append(time_total / (num_pkts - 1))
+        mean_offset_list_uni.append(time_total / (num_pkts - 1))
 
     else:
-        mean_iat_list.append(0.0)
-        std_iat_list.append(0.0)
-        min_iat_list.append(0.0)
-        max_iat_list.append(0.0)
-        mean_offset_list.append(0.0)
+        t_start_list_uni.append(time_list[0])
+        t_end_list_uni.append(time_list[0])
+        mean_iat_list_uni.append(0.0)
+        std_iat_list_uni.append(0.0)
+        min_iat_list_uni.append(0.0)
+        max_iat_list_uni.append(0.0)
+        mean_offset_list_uni.append(0.0)
 
     meta_list_time_0.append((datetime.datetime.utcfromtimestamp(pkt[6]) - global_t0).seconds)
 
@@ -266,44 +277,46 @@ print('\nDictionary of uniflows created in {} seconds'.format(uniflow_dict_time 
 print('Number of uniflows : {}'.format(len(uniflow_dict['ip_src'])))
 
 
-ip_src_list = []
-ip_dst_list = []
-prt_src_list = []
-prt_dst_list = []
-proto_list = []
-fwd_num_pkts_list = []
-bwd_num_pkts_list = []
-fwd_mean_iat_list = []
-bwd_mean_iat_list = []
-fwd_std_iat_list = []
-bwd_std_iat_list = []
-fwd_min_iat_list = []
-bwd_min_iat_list = []
-fwd_max_iat_list = []
-bwd_max_iat_list = []
-fwd_mean_offset_list = []
-bwd_mean_offset_list = []
-fwd_mean_pkt_len_list = []
-bwd_mean_pkt_len_list = []
-fwd_std_pkt_len_list = []
-bwd_std_pkt_len_list = []
-fwd_min_pkt_len_list = []
-bwd_min_pkt_len_list = []
-fwd_max_pkt_len_list = []
-bwd_max_pkt_len_list = []
-fwd_num_bytes_list = []
-bwd_num_bytes_list = []
-fwd_num_psh_flags_list = []
-bwd_num_psh_flags_list = []
-fwd_num_rst_flags_list = []
-bwd_num_rst_flags_list = []
-fwd_num_urg_flags_list = []
-bwd_num_urg_flags_list = []
-sec_1_ip_src_list = []
-sec_2_ip_src_list = []
-sec_3_ip_src_list = []
-sec_4_ip_src_list = []
-sec_5_ip_src_list = []
+t_start_list_bi = []
+t_end_list_bi = []
+ip_src_list_bi = []
+ip_dst_list_bi = []
+prt_src_list_bi = []
+prt_dst_list_bi = []
+proto_list_bi = []
+fwd_num_pkts_list_bi = []
+bwd_num_pkts_list_bi = []
+fwd_mean_iat_list_bi = []
+bwd_mean_iat_list_bi = []
+fwd_std_iat_list_bi = []
+bwd_std_iat_list_bi = []
+fwd_min_iat_list_bi = []
+bwd_min_iat_list_bi = []
+fwd_max_iat_list_bi = []
+bwd_max_iat_list_bi = []
+fwd_mean_offset_list_bi = []
+bwd_mean_offset_list_bi = []
+fwd_mean_pkt_len_list_bi = []
+bwd_mean_pkt_len_list_bi = []
+fwd_std_pkt_len_list_bi = []
+bwd_std_pkt_len_list_bi = []
+fwd_min_pkt_len_list_bi = []
+bwd_min_pkt_len_list_bi = []
+fwd_max_pkt_len_list_bi = []
+bwd_max_pkt_len_list_bi = []
+fwd_num_bytes_list_bi = []
+bwd_num_bytes_list_bi = []
+fwd_num_psh_flags_list_bi = []
+bwd_num_psh_flags_list_bi = []
+fwd_num_rst_flags_list_bi = []
+bwd_num_rst_flags_list_bi = []
+fwd_num_urg_flags_list_bi = []
+bwd_num_urg_flags_list_bi = []
+sec_1_ip_src_list_bi = []
+sec_2_ip_src_list_bi = []
+sec_3_ip_src_list_bi = []
+sec_4_ip_src_list_bi = []
+sec_5_ip_src_list_bi = []
 """
 num_src_flows_60_list = []
 num_src_flows_120_list = []
@@ -319,44 +332,46 @@ num_src_flows_list = []
 src_ip_dst_prt_delta_list = []
 """
 
-biflow_dict = {'ip_src': ip_src_list,
-               'ip_dst': ip_dst_list,
-               'prt_src': prt_src_list,
-               'prt_dst': prt_dst_list,
-               'proto': proto_list,
-               'fwd_num_pkts': fwd_num_pkts_list,
-               'bwd_num_pkts': bwd_num_pkts_list,
-               'fwd_mean_iat': fwd_mean_iat_list,
-               'bwd_mean_iat': bwd_mean_iat_list,
-               'fwd_std_iat': fwd_std_iat_list,
-               'bwd_std_iat': bwd_std_iat_list,
-               'fwd_min_iat': fwd_min_iat_list,
-               'bwd_min_iat': bwd_min_iat_list,
-               'fwd_max_iat': fwd_max_iat_list,
-               'bwd_max_iat': bwd_max_iat_list,
-               'fwd_mean_offset': fwd_mean_offset_list,
-               'bwd_mean_offset': bwd_mean_offset_list,
-               'fwd_mean_pkt_len': fwd_mean_pkt_len_list,
-               'bwd_mean_pkt_len': bwd_mean_pkt_len_list,
-               'fwd_std_pkt_len': fwd_std_pkt_len_list,
-               'bwd_std_pkt_len': bwd_std_pkt_len_list,
-               'fwd_min_pkt_len': fwd_min_pkt_len_list,
-               'bwd_min_pkt_len': bwd_min_pkt_len_list,
-               'fwd_max_pkt_len': fwd_max_pkt_len_list,
-               'bwd_max_pkt_len': bwd_max_pkt_len_list,
-               'fwd_num_bytes': fwd_num_bytes_list,
-               'bwd_num_bytes': bwd_num_bytes_list,
-               'fwd_num_psh_flags': fwd_num_psh_flags_list,
-               'bwd_num_psh_flags': bwd_num_psh_flags_list,
-               'fwd_num_rst_flags': fwd_num_rst_flags_list,
-               'bwd_num_rst_flags': bwd_num_rst_flags_list,
-               'fwd_num_urg_flags': fwd_num_urg_flags_list,
-               'bwd_num_urg_flags': bwd_num_urg_flags_list,
-               'sec_1_ip_src': sec_1_ip_src_list,
-               'sec_2_ip_src': sec_2_ip_src_list,
-               'sec_3_ip_src': sec_3_ip_src_list,
-               'sec_4_ip_src': sec_4_ip_src_list,
-               'sec_5_ip_src': sec_5_ip_src_list}
+biflow_dict = {'t_start': t_start_list_bi,
+               't_end': t_end_list_bi,
+               'ip_src': ip_src_list_bi,
+               'ip_dst': ip_dst_list_bi,
+               'prt_src': prt_src_list_bi,
+               'prt_dst': prt_dst_list_bi,
+               'proto': proto_list_bi,
+               'fwd_num_pkts': fwd_num_pkts_list_bi,
+               'bwd_num_pkts': bwd_num_pkts_list_bi,
+               'fwd_mean_iat': fwd_mean_iat_list_bi,
+               'bwd_mean_iat': bwd_mean_iat_list_bi,
+               'fwd_std_iat': fwd_std_iat_list_bi,
+               'bwd_std_iat': bwd_std_iat_list_bi,
+               'fwd_min_iat': fwd_min_iat_list_bi,
+               'bwd_min_iat': bwd_min_iat_list_bi,
+               'fwd_max_iat': fwd_max_iat_list_bi,
+               'bwd_max_iat': bwd_max_iat_list_bi,
+               'fwd_mean_offset': fwd_mean_offset_list_bi,
+               'bwd_mean_offset': bwd_mean_offset_list_bi,
+               'fwd_mean_pkt_len': fwd_mean_pkt_len_list_bi,
+               'bwd_mean_pkt_len': bwd_mean_pkt_len_list_bi,
+               'fwd_std_pkt_len': fwd_std_pkt_len_list_bi,
+               'bwd_std_pkt_len': bwd_std_pkt_len_list_bi,
+               'fwd_min_pkt_len': fwd_min_pkt_len_list_bi,
+               'bwd_min_pkt_len': bwd_min_pkt_len_list_bi,
+               'fwd_max_pkt_len': fwd_max_pkt_len_list_bi,
+               'bwd_max_pkt_len': bwd_max_pkt_len_list_bi,
+               'fwd_num_bytes': fwd_num_bytes_list_bi,
+               'bwd_num_bytes': bwd_num_bytes_list_bi,
+               'fwd_num_psh_flags': fwd_num_psh_flags_list_bi,
+               'bwd_num_psh_flags': bwd_num_psh_flags_list_bi,
+               'fwd_num_rst_flags': fwd_num_rst_flags_list_bi,
+               'bwd_num_rst_flags': bwd_num_rst_flags_list_bi,
+               'fwd_num_urg_flags': fwd_num_urg_flags_list_bi,
+               'bwd_num_urg_flags': bwd_num_urg_flags_list_bi,
+               'sec_1_ip_src': sec_1_ip_src_list_bi,
+               'sec_2_ip_src': sec_2_ip_src_list_bi,
+               'sec_3_ip_src': sec_3_ip_src_list_bi,
+               'sec_4_ip_src': sec_4_ip_src_list_bi,
+               'sec_5_ip_src': sec_5_ip_src_list_bi}
 """
 'num_src_flows_60': num_src_flows_60_list,
 'src_ip_dst_prt_delta_60': src_ip_dst_prt_delta_60_list,
@@ -400,45 +415,47 @@ for i in range(num_flow_processed, num_flow):
                     (uniflow_dict['proto'][j] == uniflow_dict['proto'][i]):
                 # index i is fwd flow, j is bwd flow
 
-                ip_src_list.append(uniflow_dict['ip_src'][i])
-                ip_dst_list.append(uniflow_dict['ip_dst'][i])
-                prt_src_list.append(uniflow_dict['prt_src'][i])
-                prt_dst_list.append(uniflow_dict['prt_dst'][i])
-                proto_list.append(uniflow_dict['proto'][i])
-                fwd_num_pkts_list.append(uniflow_dict['num_pkts'][i])
-                bwd_num_pkts_list.append(uniflow_dict['num_pkts'][j])
-                fwd_mean_iat_list.append(uniflow_dict['mean_iat'][i])
-                bwd_mean_iat_list.append(uniflow_dict['mean_iat'][j])
-                fwd_std_iat_list.append(uniflow_dict['std_iat'][i])
-                bwd_std_iat_list.append(uniflow_dict['std_iat'][j])
-                fwd_min_iat_list.append(uniflow_dict['min_iat'][i])
-                bwd_min_iat_list.append(uniflow_dict['min_iat'][j])
-                fwd_max_iat_list.append(uniflow_dict['max_iat'][i])
-                bwd_max_iat_list.append(uniflow_dict['max_iat'][j])
-                fwd_mean_offset_list.append(uniflow_dict['mean_offset'][i])
-                bwd_mean_offset_list.append(uniflow_dict['mean_offset'][j])
-                fwd_mean_pkt_len_list.append(uniflow_dict['mean_pkt_len'][i])
-                bwd_mean_pkt_len_list.append(uniflow_dict['mean_pkt_len'][j])
-                fwd_std_pkt_len_list.append(uniflow_dict['std_pkt_len'][i])
-                bwd_std_pkt_len_list.append(uniflow_dict['std_pkt_len'][j])
-                fwd_min_pkt_len_list.append(uniflow_dict['min_pkt_len'][i])
-                bwd_min_pkt_len_list.append(uniflow_dict['min_pkt_len'][j])
-                fwd_max_pkt_len_list.append(uniflow_dict['max_pkt_len'][i])
-                bwd_max_pkt_len_list.append(uniflow_dict['max_pkt_len'][j])
-                fwd_num_bytes_list.append(uniflow_dict['num_bytes'][i])
-                bwd_num_bytes_list.append(uniflow_dict['num_bytes'][j])
-                fwd_num_psh_flags_list.append(uniflow_dict['num_psh_flags'][i])
-                bwd_num_psh_flags_list.append(uniflow_dict['num_psh_flags'][j])
-                fwd_num_rst_flags_list.append(uniflow_dict['num_rst_flags'][i])
-                bwd_num_rst_flags_list.append(uniflow_dict['num_rst_flags'][j])
-                fwd_num_urg_flags_list.append(uniflow_dict['num_urg_flags'][i])
-                bwd_num_urg_flags_list.append(uniflow_dict['num_urg_flags'][j])
+                t_start_list_bi.append(min(uniflow_dict['t_start'][i], uniflow_dict['t_start'][j]))
+                t_end_list_bi.append(max(uniflow_dict['t_end'][i], uniflow_dict['t_end'][j]))
+                ip_src_list_bi.append(uniflow_dict['ip_src'][i])
+                ip_dst_list_bi.append(uniflow_dict['ip_dst'][i])
+                prt_src_list_bi.append(uniflow_dict['prt_src'][i])
+                prt_dst_list_bi.append(uniflow_dict['prt_dst'][i])
+                proto_list_bi.append(uniflow_dict['proto'][i])
+                fwd_num_pkts_list_bi.append(uniflow_dict['num_pkts'][i])
+                bwd_num_pkts_list_bi.append(uniflow_dict['num_pkts'][j])
+                fwd_mean_iat_list_bi.append(uniflow_dict['mean_iat'][i])
+                bwd_mean_iat_list_bi.append(uniflow_dict['mean_iat'][j])
+                fwd_std_iat_list_bi.append(uniflow_dict['std_iat'][i])
+                bwd_std_iat_list_bi.append(uniflow_dict['std_iat'][j])
+                fwd_min_iat_list_bi.append(uniflow_dict['min_iat'][i])
+                bwd_min_iat_list_bi.append(uniflow_dict['min_iat'][j])
+                fwd_max_iat_list_bi.append(uniflow_dict['max_iat'][i])
+                bwd_max_iat_list_bi.append(uniflow_dict['max_iat'][j])
+                fwd_mean_offset_list_bi.append(uniflow_dict['mean_offset'][i])
+                bwd_mean_offset_list_bi.append(uniflow_dict['mean_offset'][j])
+                fwd_mean_pkt_len_list_bi.append(uniflow_dict['mean_pkt_len'][i])
+                bwd_mean_pkt_len_list_bi.append(uniflow_dict['mean_pkt_len'][j])
+                fwd_std_pkt_len_list_bi.append(uniflow_dict['std_pkt_len'][i])
+                bwd_std_pkt_len_list_bi.append(uniflow_dict['std_pkt_len'][j])
+                fwd_min_pkt_len_list_bi.append(uniflow_dict['min_pkt_len'][i])
+                bwd_min_pkt_len_list_bi.append(uniflow_dict['min_pkt_len'][j])
+                fwd_max_pkt_len_list_bi.append(uniflow_dict['max_pkt_len'][i])
+                bwd_max_pkt_len_list_bi.append(uniflow_dict['max_pkt_len'][j])
+                fwd_num_bytes_list_bi.append(uniflow_dict['num_bytes'][i])
+                bwd_num_bytes_list_bi.append(uniflow_dict['num_bytes'][j])
+                fwd_num_psh_flags_list_bi.append(uniflow_dict['num_psh_flags'][i])
+                bwd_num_psh_flags_list_bi.append(uniflow_dict['num_psh_flags'][j])
+                fwd_num_rst_flags_list_bi.append(uniflow_dict['num_rst_flags'][i])
+                bwd_num_rst_flags_list_bi.append(uniflow_dict['num_rst_flags'][j])
+                fwd_num_urg_flags_list_bi.append(uniflow_dict['num_urg_flags'][i])
+                bwd_num_urg_flags_list_bi.append(uniflow_dict['num_urg_flags'][j])
 
-                sec_1_ip_src_list.append(str(meta_list_time_0[i] // 60) + '_' + uniflow_dict['ip_src'][i])
-                sec_2_ip_src_list.append(str(meta_list_time_0[i] // 120) + '_' + uniflow_dict['ip_src'][i])
-                sec_3_ip_src_list.append(str(meta_list_time_0[i] // 180) + '_' + uniflow_dict['ip_src'][i])
-                sec_4_ip_src_list.append(str(meta_list_time_0[i] // 240) + '_' + uniflow_dict['ip_src'][i])
-                sec_5_ip_src_list.append(str(meta_list_time_0[i] // 300) + '_' + uniflow_dict['ip_src'][i])
+                sec_1_ip_src_list_bi.append(str(meta_list_time_0[i] // 60) + '_' + uniflow_dict['ip_src'][i])
+                sec_2_ip_src_list_bi.append(str(meta_list_time_0[i] // 120) + '_' + uniflow_dict['ip_src'][i])
+                sec_3_ip_src_list_bi.append(str(meta_list_time_0[i] // 180) + '_' + uniflow_dict['ip_src'][i])
+                sec_4_ip_src_list_bi.append(str(meta_list_time_0[i] // 240) + '_' + uniflow_dict['ip_src'][i])
+                sec_5_ip_src_list_bi.append(str(meta_list_time_0[i] // 300) + '_' + uniflow_dict['ip_src'][i])
 
                 """
                 for t in range(5):
@@ -483,7 +500,7 @@ print('\nDictionary of biflow created in {} seconds'.format(biflow_dict_time - u
 
 # print(biflow_dict)
 df = pd.DataFrame(biflow_dict)
-print(df)
+# print(df)
 
 print('\nParsing the file took {} seconds'.format(time.time() - start_time))
 
