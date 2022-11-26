@@ -7,20 +7,17 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 
 import parse
 
-
+"""
 # TO WORK WITH PCAP FILES _____________________________________
 df = parse.df_biflow
 print(df)
-
-
 """
+
+
 # TO WORK WITH CSV FILES __________________________________________
 # Concat all csv files in a dataframe
-os.chdir("/home/eii/Documents/Strathclyde/archive/MachineLearningCSV/MachineLearningCVE/")
-all_filenames = [i for i in glob.glob('*.{}'.format('csv'))]
-df = pd.concat([pd.read_csv(f) for f in all_filenames])
-print("Number of samples : ", len(df.index))
-"""
+df =pd.read_csv('dataset.csv')
+
 
 """
 # LIST THE DIFFERENT TYPES OF ATTACKS IN DATASET __________________
@@ -31,6 +28,19 @@ for attack_type in df[' Label']:
 print("All classes for AI model : ", attacks_list)
 """
 
+df.drop('Unnamed: 0.2', axis=1, inplace=True)
+df.drop('Unnamed: 0.1', axis=1, inplace=True)
+df.drop('Unnamed: 0', axis=1, inplace=True)
+df.drop('t_start', axis=1, inplace=True)
+df.drop('t_end', axis=1, inplace=True)
+df.drop('ip_src', axis=1, inplace=True)
+df.drop('ip_dst', axis=1, inplace=True)
+df.drop('sec_1_ip_src', axis=1, inplace=True)
+df.drop('sec_2_ip_src', axis=1, inplace=True)
+df.drop('sec_3_ip_src', axis=1, inplace=True)
+df.drop('sec_4_ip_src', axis=1, inplace=True)
+df.drop('sec_5_ip_src', axis=1, inplace=True)
+
 # PRINT DATASET FEATURES NAMES ____________________
 for col in df.columns:
     print(col)
@@ -39,22 +49,16 @@ for col in df.columns:
 
 # ONE-HOT ENCODING THEN CREATING TRAINING AND TESTING SAMPLES ________________________
 X = df.iloc[:, 0:-1]
-# X.drop(' Destination Port', axis=1, inplace=True)  # TO DISCUSS
-Y = df[' Label']  # Labels
+Y = df['label']  # Labels
+print(X)
+print(Y)
 # X.dropna()
 # X.fillna(X.mean(), inplace=True)
 
-"""
-df_pandas_one_hot = pd.get_dummies(X,
-                                   columns=['Fwd PSH Flags', ' Bwd PSH Flags', ' Fwd URG Flags',
-                                            ' Bwd URG Flags',
-                                            'Subflow Fwd Packets', ' Subflow Fwd Bytes', ' Subflow Bwd Packets',
-                                            ' Subflow Bwd Bytes',
-                                            'Init_Win_bytes_forward', ' Init_Win_bytes_backward', ' act_data_pkt_fwd'])
+X_encoded = pd.get_dummies(X, columns=['proto'])
 print("One-hot encoding performed \n")
-"""
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+X_train, X_test, Y_train, Y_test = train_test_split(X_encoded, Y, test_size=0.2)
 
 # AI MODEL USING HIST GRADIENT BOOSTING CLASSIFIER ___________________________
 clf_hgbc = HistGradientBoostingClassifier().fit(X_train, Y_train)

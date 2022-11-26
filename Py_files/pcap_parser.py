@@ -8,9 +8,11 @@ import pandas as pd
 from dpkt.utils import inet_to_str
 
 start_time = time.time()
+print('Starting pcap_parser\n')
 
-# file_path = '/home/julien/Documents/Strath_Project/Dataset_test/smallFlows.pcap'
-file_path = '/home/julien/Documents/Strath_Project/Dataset/Tuesday-WorkingHours_split_conv.pcap'
+file_path = '/home/jpriam/Strath_Project/Dataset/Thursday-WorkingHours.pcap'
+# file_path = '/home/julien/Documents/Strath_Project/Dataset_test/Monday-WorkingHours.pcap'
+# file_path = '/home/julien/Documents/Strath_Project/Dataset/Tuesday-WorkingHours_split_conv.pcap'
 global_t0 = 0
 
 
@@ -55,10 +57,17 @@ pcap_file = dpkt.pcap.Reader(f)
 count = 1
 udpcount = 0
 tcpcount = 0
+min_ts = 0
 for timestamp, buf in pcap_file:
     if count == 1:
+        min_ts = timestamp
         global_t0 = datetime.datetime.utcfromtimestamp(timestamp)
+        print('Start time : ', global_t0)
+    if count % 100000 == 0:
+        print('{} packets have been processed'.format(count))
 
+    if min_ts > timestamp:
+        min_ts = timestamp
 
     eth = dpkt.ethernet.Ethernet(buf)
     # Make sure the Ethernet frame contains an IP packet
@@ -82,8 +91,6 @@ for timestamp, buf in pcap_file:
     ip_src_list.append(inet_to_str(ip.src))
     ip_dst_list.append(inet_to_str(ip.dst))
     ip_len_list.append(len(eth.data))
-
-
 
     if isinstance(ip.data, dpkt.tcp.TCP):
         tcp = ip.data
@@ -117,7 +124,6 @@ f.close()
 pkt_dict_time = time.time()
 print('\nDictionary of packets created in {} seconds'.format(pkt_dict_time - start_time))
 print('Number of TCP & UDP packets : {}'.format(len(packet_dict['pkt_num'])))
-
 
 tuplist_flowid = {}
 flow_count = 0
@@ -276,7 +282,6 @@ uniflow_dict_time = time.time()
 print('\nDictionary of uniflows created in {} seconds'.format(uniflow_dict_time - pkt_dict_time))
 print('Number of uniflows : {}'.format(len(uniflow_dict['ip_src'])))
 
-
 t_start_list_bi = []
 t_end_list_bi = []
 ip_src_list_bi = []
@@ -386,7 +391,6 @@ biflow_dict = {'t_start': t_start_list_bi,
 'num_src_flows': num_src_flows_list,
 'src_ip_dst_prt_delta': src_ip_dst_prt_delta_list}
 """
-
 
 num_flow_processed = 0
 num_flow = len(uniflow_dict['ip_src'])
@@ -500,6 +504,7 @@ print('\nDictionary of biflow created in {} seconds'.format(biflow_dict_time - u
 
 # print(biflow_dict)
 df = pd.DataFrame(biflow_dict)
+print(min_ts)
 # print(df)
 
 print('\nParsing the file took {} seconds'.format(time.time() - start_time))
