@@ -13,7 +13,7 @@ ip_attack_3 = '192.168..10.51'
 ip_attack_4 = '172.16.0.11'
 ip_attack_5 = '205.174.165.73'
 ip_attack_6 = '192.168.10.8'
-week_days = ['monday', 'tuesday', 'wednesday', 'thursday']
+week_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 
 def sec_to_hms(sec):
@@ -35,13 +35,6 @@ def flow_included_in_window(w_start, w_end, flow_start, flow_end):
         return False
 
 
-"""
-# GET DATAFRAME FROM PCAP_PARSER FILE ___________________
-df = pcap_parser.df
-print(df)
-df.to_csv('thursday.csv')
-"""
-
 flow_count = 0
 count_benign = 0
 count_ftp_patator = 0
@@ -55,49 +48,32 @@ count_brute_force = 0
 count_xss = 0
 count_sql_injection = 0
 count_infiltration = 0
+count_botnet_ares = 0
+count_port_scan = 0
+count_Ddos_loit = 0
 
 for day in week_days:
 
-    test_count = 0
+    print('\nStarting to label {} file'.format(day))
 
-    input_file = day + '.csv'
-    output_file = day + '_label.csv'
-    print(input_file, output_file)
+    input_file = '/media/external_wd/jpriam/' + day + '.csv'
+    output_file = '/media/external_wd/jpriam/' + day + '_label.csv'
 
     df = pd.read_csv(input_file)
-
-    if day == 'monday':
-        real_start_time = hms_to_sec('8:56:38')
-    elif day == 'tuesday':
-        real_start_time = hms_to_sec('8:54:00')
-    elif day == 'wednesday':
-        real_start_time = hms_to_sec('8:42:00')
-    elif day == 'thursday':
-        real_start_time = hms_to_sec('8:59:00')
-    else:
-        real_start_time = hms_to_sec('9:00:00')
-
-    offset = abs(df['t_start'][0] - real_start_time)
     label = []
 
     # ADD LABEL IF MATCHING WITH ATTACKER IP ______________________
     for index in df.index:
-        t_start = df['t_start'][index] - offset
-        t_end = df['t_end'][index] - offset
+        t_start = df['t_start'][index]
+        t_end = df['t_end'][index]
         ip_src = df['ip_src'][index]
         ip_dst = df['ip_dst'][index]
 
-        if test_count < 20:
-            print(ip_src, ip_dst, sec_to_hms(t_start))
-            test_count += 1
-
-        if day == 'monday':
+        if day == 'Monday':
             label.append('BENIGN')
             count_benign += 1
 
-
-
-        elif day == 'tuesday':
+        elif day == 'Tuesday':
             if ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                 (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                     (flow_included_in_window(hms_to_sec('9:20:00'), hms_to_sec('10:20:00'), t_start, t_end)):
@@ -114,9 +90,7 @@ for day in week_days:
                 label.append('BENIGN')
                 count_benign += 1
 
-
-
-        elif day == 'wednesday':
+        elif day == 'Wednesday':
             if ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                 (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                     (flow_included_in_window(hms_to_sec('9:47:00'), hms_to_sec('10:10:00'), t_start, t_end)):
@@ -151,9 +125,7 @@ for day in week_days:
                 label.append('BENIGN')
                 count_benign += 1
 
-
-
-        elif day == 'thursday':
+        elif day == 'Thursday':
             if ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                 (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                     (flow_included_in_window(hms_to_sec('9:20:00'), hms_to_sec('10:00:00'), t_start, t_end)):
@@ -197,6 +169,26 @@ for day in week_days:
                 label.append('BENIGN')
                 count_benign += 1
 
+        else:
+            if (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
+                    (flow_included_in_window(hms_to_sec('10:02:00'), hms_to_sec('11:02:00'), t_start, t_end)):
+                label.append('BOTNET ARES')
+                count_botnet_ares += 1
+
+            elif (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
+                    (flow_included_in_window(hms_to_sec('13:55:00'), hms_to_sec('15:29:00'), t_start, t_end)):
+                label.append('PORT SCAN')
+                count_port_scan += 1
+
+            elif (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
+                    (flow_included_in_window(hms_to_sec('15:56:00'), hms_to_sec('16:16:00'), t_start, t_end)):
+                label.append('DDOS LOIT')
+                count_Ddos_loit += 1
+
+            else:
+                label.append('BENIGN')
+                count_benign += 1
+
         flow_count += 1
 
     df['label'] = label
@@ -215,10 +207,16 @@ print('Nb of brute force attacks : {}'.format(count_brute_force))
 print('Nb of xss attacks : {}'.format(count_xss))
 print('Nb of sql injection attacks : {}'.format(count_sql_injection))
 print('Nb of infiltration attacks : {}'.format(count_infiltration))
+print('Nb of Botenet Ares attacks : {}'.format(count_botnet_ares))
+print('Nb of port scan attacks : {}'.format(count_botnet_ares))
+print('Nb of Ddos Loit attacks : {}'.format(count_Ddos_loit))
+print('Nb of benign flows : {}'.format(count_benign))
 
 # CONCATENATE LABEL CSV FILES _______________________________
-files = ['monday_label.csv', 'tuesday_label.csv', 'wednesday_label.csv', 'thursday_label.csv']
-global_dataset = pd.concat([pd.read_csv(f) for f in files])
-global_dataset.to_csv('dataset.csv')
+files_list = []
+for day in week_days:
+    files_list.append('/media/external_wd/jpriam/' + day + '_label.csv')
+    global_dataset = pd.concat([pd.read_csv(f) for f in files_list])
+    global_dataset.to_csv('/media/external_wd/jpriam/dataset_with_label.csv')
 
 print('\nAdding label to dataset took {} seconds'.format(time.time() - start_time))

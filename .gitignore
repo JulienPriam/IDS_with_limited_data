@@ -4,4 +4,5 @@ Py_files/__pycache__
 Py_files/venv
 Py_files/.idea
 Py_files/test.py
-Documents/Notes
+Py_files/*.csv
+Documents/notes.txt
