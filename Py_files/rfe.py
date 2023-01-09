@@ -1,20 +1,15 @@
-import os
-import glob
-import time
 import random
-import pandas as pd
-from sklearn import metrics
-from sklearn.feature_selection import RFE, RFECV
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import HistGradientBoostingClassifier
+import time
 
-import parse
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFECV
+from sklearn.model_selection import train_test_split, StratifiedKFold
 
 start_time = time.time()
 print("\n\nStarting AI script")
 
-df =pd.read_csv('/media/external_wd/jpriam/dataset_with_label.csv')
+df =pd.read_csv('dataset_with_label.csv')
 
 # REMOVE SOME FEATURES ___________________________
 df.drop('Unnamed: 0.2', axis=1, inplace=True)
@@ -31,16 +26,22 @@ df.drop('sec_4_ip_src', axis=1, inplace=True)
 df.drop('sec_5_ip_src', axis=1, inplace=True)
 print('Dataframe before removing benign traffic\n', df)
 
-"""
+
 # REMOVE INSTANCIES OF BENIGN TRAFFIC _________________
 print('\nStart removing benign instances')
+t0 = time.time()
 for index in df.index:
+    if index % 1000 == 0:
+        print('1000 rows treated in {} seconds'.format(time.time() - t0))
+        t0 = time.time()
     if df['label'][index] == 'BENIGN':
         r = random.randint(0, 7)
         if r != 0:
             df.drop(index)
+            # print('BENIGN DROPED')
 print('Datframe after removing benign traffic\n', df)
-"""
+df.to_csv('balanced_dataset.csv')
+
 
 # PRINT DATASET FEATURES NAMES ____________________
 nb_features = 0
