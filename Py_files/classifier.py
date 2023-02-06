@@ -3,22 +3,26 @@ import pandas as pd
 from keras import models, layers, utils, backend as K
 import matplotlib.pyplot as plt
 from imblearn.under_sampling import RandomUnderSampler
+from keras.saving.legacy.model_config import model_from_json
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 
 from visualization import visualize_nn
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
-run_param_optimization = 1       # perform RandomSearchCV
-run_NN = 1                       # train and test the neural network
-plot_network = 0                 # plot a view of the NN (not advised if RandomSearchCV performing)
+run_param_optimization = 0  # perform RandomSearchCV
+run_NN = 0  # train and test the neural network
+plot_network = 0  # plot a view of the NN (not advised if RandomSearchCV performing)
+save_model = 0  # save the model structure and parameters on the disk
+load_model = 1  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
 layer1_neurons = 25
 layer2_neurons = 15
 batch_size = 128
 epochs = 100
-learning_rate = 0.001
+learning_rate = 0.005
+optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
 # for randomizedSearchCV
 parameters = {'batch_size': [128],
@@ -27,31 +31,6 @@ parameters = {'batch_size': [128],
               'layer1_neurons': [5, 10, 15, 20, 25, 30],
               'layer2_neurons': [5, 10, 15, 20, 25, 30]}
 n_iter = 100
-# ______________________________________________________________________________________________________________________
-
-
-# BUILD MODEL __________________________________________________________________________________________________________
-def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
-    n_features = 32
-    inputs = layers.Input(name="input", shape=(n_features,))  # hidden layer 1
-    h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
-    # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
-    h2 = layers.Dense(name="h2", units=layer2_neurons, activation='relu')(h1)
-    # h2 = layers.Dropout(name="drop2", rate=0.2)(h2)  ### layer output
-    outputs = layers.Dense(name="output", units=1, activation='sigmoid')(h2)
-
-    model = models.Model(inputs=inputs, outputs=outputs, name="DeepNN")
-    model.summary()
-
-    if plot_network:
-        visualize_nn(model, description=True, figsize=(10, 8))
-
-    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
-    model.compile(optimizer=optimizer, loss='binary_crossentropy',
-                  metrics=['accuracy'])
-    return model
-
-
 # ______________________________________________________________________________________________________________________
 
 
@@ -85,9 +64,34 @@ def R2(y, y_hat):
 # ______________________________________________________________________________________________________________________
 
 
+# BUILD MODEL __________________________________________________________________________________________________________
+def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
+    n_features = 32
+    inputs = layers.Input(name="input", shape=(n_features,))  # hidden layer 1
+    h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
+    # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
+    h2 = layers.Dense(name="h2", units=layer2_neurons, activation='relu')(h1)
+    # h2 = layers.Dropout(name="drop2", rate=0.2)(h2)  ### layer output
+    outputs = layers.Dense(name="output", units=1, activation='sigmoid')(h2)
+
+    model = models.Model(inputs=inputs, outputs=outputs, name="DeepNN")
+    model.summary()
+
+    if plot_network:
+        visualize_nn(model, description=True, figsize=(10, 8))
+
+
+    model.compile(optimizer=optimizer, loss='binary_crossentropy',
+                  metrics=['accuracy', F1])
+    return model
+
+
+# ______________________________________________________________________________________________________________________
+
+
 # PREPARE THE DATASET __________________________________________________________________________________________________
 # df = pd.read_csv('CIC_features_binary.csv').iloc[300000:500000]
-df = pd.read_csv('binary_dataset2.csv').iloc[500000:600000]
+df = pd.read_csv('binary_dataset2.csv') #.iloc[500000:600000]
 print(df['label'].value_counts())
 
 # REMOVE SOME FEATURES ___________________________
@@ -116,7 +120,7 @@ y_test = y_smote_test.values
 # ______________________________________________________________________________________________________________________
 
 
-# COMPILE THE NEURAL NETWORK ___________________________________________________________________________________________
+# SEARCH FOR BEST HYPERPARAMETERS ______________________________________________________________________________________
 if run_param_optimization:
     classifier = KerasClassifier(build_fn=build_classifier)
     random_search = RandomizedSearchCV(estimator=classifier, param_distributions=parameters,
@@ -136,7 +140,10 @@ if run_param_optimization:
     print('Random Best score', random_search.best_score_)
     print('Random Best params', best_param)
     print('Random execution time', random_search.refit_time_)
+# ______________________________________________________________________________________________________________________
 
+
+# TRAIN THE NEURAL NETWORK _____________________________________________________________________________________________
 if run_NN:
     print('\nThe Neural Network will be trained with these parameters :')
     print('Layer1: {} neurons, layer2: {} neurons, batch size: {}, epochs: {}, learning rate {}'.format(layer1_neurons,
@@ -160,6 +167,7 @@ if run_NN:
 
     # Training
     ax[0].set(title="Training")
+    ax[0].set_ylim(0, 2)
     ax11 = ax[0].twinx()
     ax[0].plot(training.history['loss'], color='black')
     ax[0].set_xlabel('Epochs')
@@ -180,3 +188,35 @@ if run_NN:
         ax22.set_ylabel("Score", color="steelblue")
     plt.show()
     # __________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+
+
+# SAVE THE MODEL _______________________________________________________________________________________________________
+if save_model & run_NN:
+    # serialize model to JSON
+    model_json = model.to_json()
+    with open("model.json", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    model.save_weights("model.h5")
+    print("\nSaved model to disk")
+# ______________________________________________________________________________________________________________________
+
+
+# LOAD MODEL FROM DISK AND EVALUATE ON TESTING SET _____________________________________________________________________
+if load_model:
+    # load json and create model
+    json_file = open('model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+    # load weights into new model
+    loaded_model.load_weights("model.h5")
+    print("\nLoaded model from disk")
+
+    # evaluate loaded model on test data
+    loaded_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', F1])
+    score = loaded_model.evaluate(X_test, y_test, verbose=0)
+    print("{}: {}%".format(loaded_model.metrics_names[1], score[1] * 100))
+# ______________________________________________________________________________________________________________________
+
