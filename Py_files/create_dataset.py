@@ -1,4 +1,3 @@
-import socket
 import dpkt
 import datetime
 
@@ -9,13 +8,16 @@ from dpkt.utils import inet_to_str
 from imblearn.under_sampling import RandomUnderSampler
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
-run_features_extraction = True
-run_label_dataset = True
-run_binarize_dataset = True
-run_balance_dataset = True
+run_features_extraction = False
+run_label_dataset = False
+run_binarize_dataset = False
+run_balance_binary_dataset = False
+run_balance_multiclass_dataset = True
 
-dir_path = '/media/external_wd/jpriam/'                                 # path to pcap files
-days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']    # days to consider
+save_on_external_storage = True
+dataset_path = '/media/external_wd/jpriam/'  # path to pcap files
+ext_storage_path = '/media/external_wd/jpriam/'
+days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']  # days to consider
 # ______________________________________________________________________________________________________________________
 
 
@@ -41,8 +43,11 @@ if run_features_extraction:
         start_time_file = time.time()
         print('Start parsing {} file'.format(day))
 
-        input_file_path = dir_path + day + '-WorkingHours.pcap'
-        output_file_path = dir_path + day + '.csv'
+        input_file_path = dataset_path + day + '-WorkingHours.pcap'
+        if save_on_external_storage:
+            output_file_path = ext_storage_path + day + '.csv'
+        else:
+            output_file_path = day + '.csv'
 
         pkt_num_list = []
         time_list = []
@@ -331,12 +336,12 @@ if run_features_extraction:
         bwd_num_rst_flags_list_bi = []
         fwd_num_urg_flags_list_bi = []
         bwd_num_urg_flags_list_bi = []
+        """
         sec_1_ip_src_list_bi = []
         sec_2_ip_src_list_bi = []
         sec_3_ip_src_list_bi = []
         sec_4_ip_src_list_bi = []
-        sec_5_ip_src_list_bi = []
-        """
+        sec_5_ip_src_list_bi = []     
         num_src_flows_60_list = []
         num_src_flows_120_list = []
         num_src_flows_180_list = []
@@ -380,18 +385,20 @@ if run_features_extraction:
                        'bwd_max_pkt_len': bwd_max_pkt_len_list_bi,
                        'fwd_num_bytes': fwd_num_bytes_list_bi,
                        'bwd_num_bytes': bwd_num_bytes_list_bi,
+
                        'fwd_num_psh_flags': fwd_num_psh_flags_list_bi,
                        'bwd_num_psh_flags': bwd_num_psh_flags_list_bi,
                        'fwd_num_rst_flags': fwd_num_rst_flags_list_bi,
                        'bwd_num_rst_flags': bwd_num_rst_flags_list_bi,
                        'fwd_num_urg_flags': fwd_num_urg_flags_list_bi,
-                       'bwd_num_urg_flags': bwd_num_urg_flags_list_bi,
-                       'sec_1_ip_src': sec_1_ip_src_list_bi,
-                       'sec_2_ip_src': sec_2_ip_src_list_bi,
-                       'sec_3_ip_src': sec_3_ip_src_list_bi,
-                       'sec_4_ip_src': sec_4_ip_src_list_bi,
-                       'sec_5_ip_src': sec_5_ip_src_list_bi}
+                       'bwd_num_urg_flags': bwd_num_urg_flags_list_bi}
         """
+        'sec_1_ip_src': sec_1_ip_src_list_bi,
+        'sec_2_ip_src': sec_2_ip_src_list_bi,
+        'sec_3_ip_src': sec_3_ip_src_list_bi,
+        'sec_4_ip_src': sec_4_ip_src_list_bi,
+        'sec_5_ip_src': sec_5_ip_src_list_bi}
+
         'num_src_flows_60': num_src_flows_60_list,
         'src_ip_dst_prt_delta_60': src_ip_dst_prt_delta_60_list,
         'num_src_flows_120': num_src_flows_120_list,
@@ -469,13 +476,13 @@ if run_features_extraction:
                         fwd_num_urg_flags_list_bi.append(uniflow_dict['num_urg_flags'][i])
                         bwd_num_urg_flags_list_bi.append(uniflow_dict['num_urg_flags'][j])
 
+                        """
                         sec_1_ip_src_list_bi.append(str(meta_list_time_0[i] // 60) + '_' + uniflow_dict['ip_src'][i])
                         sec_2_ip_src_list_bi.append(str(meta_list_time_0[i] // 120) + '_' + uniflow_dict['ip_src'][i])
                         sec_3_ip_src_list_bi.append(str(meta_list_time_0[i] // 180) + '_' + uniflow_dict['ip_src'][i])
                         sec_4_ip_src_list_bi.append(str(meta_list_time_0[i] // 240) + '_' + uniflow_dict['ip_src'][i])
                         sec_5_ip_src_list_bi.append(str(meta_list_time_0[i] // 300) + '_' + uniflow_dict['ip_src'][i])
 
-                        """
                         for t in range(5):
                             current_time_window = (t + 1) * 60
                             if uniflow_dict['ip_src'][i] not in sibilings_counts[current_time_window]:
@@ -488,15 +495,15 @@ if run_features_extraction:
                                 for temp in bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]]:
                                     if temp < min_time:
                                         del_counter += 1
-    
+
                                 sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] -= del_counter
                                 del delta_avg[current_time_window][uniflow_dict['ip_src'][i]][0:del_counter]
                                 del bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]][0:del_counter]
-    
+
                             sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] += 1
                             delta_avg[current_time_window][uniflow_dict['ip_src'][i]].append(uniflow_dict['prt_dst'][i])
                             bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]].append(meta_list_time_0[i])
-    
+
                             if meta_list_time_0[i] >= current_time_window:
                                 num_src_flows_list.append(
                                     int(sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]]))
@@ -536,7 +543,6 @@ if run_label_dataset:
     ip_attack_4 = '172.16.0.11'
     ip_attack_5 = '205.174.165.73'
     ip_attack_6 = '192.168.10.8'
-    week_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 
     def sec_to_hms(sec):
@@ -575,12 +581,16 @@ if run_label_dataset:
     count_port_scan = 0
     count_Ddos_loit = 0
 
-    for day in week_days:
+    for day in days_list:
 
         print('\nStarting to label {} file'.format(day))
 
-        input_file = '/media/external_wd/jpriam/' + day + '.csv'
-        output_file = '/media/external_wd/jpriam/' + day + '_label.csv'
+        if save_on_external_storage:
+            input_file = ext_storage_path + day + '.csv'
+            output_file = ext_storage_path + day + '.csv'
+        else:
+            input_file = day + '.csv'
+            output_file = day + '.csv'
 
         df = pd.read_csv(input_file)
         df.drop('Unnamed: 0', axis=1, inplace=True)
@@ -594,123 +604,123 @@ if run_label_dataset:
             ip_dst = df['ip_dst'][index]
 
             if day == 'Monday':
-                label.append('BENIGN')
+                label.append(0) #BENIGN
                 count_benign += 1
 
             elif day == 'Tuesday':
                 if ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                     (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('9:20:00'), hms_to_sec('10:20:00'), t_start, t_end)):
-                    label.append('FTP-Patator')
+                    label.append(1) #FTP-Patator
                     count_ftp_patator += 1
 
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('14:00:00'), hms_to_sec('15:00:00'), t_start, t_end)):
-                    label.append('SSH-Patator')
+                    label.append(2) #SSH-Patator
                     count_ssh_patator += 1
 
                 else:
-                    label.append('BENIGN')
+                    label.append(0) #BENIGN
                     count_benign += 1
 
             elif day == 'Wednesday':
                 if ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                     (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('9:47:00'), hms_to_sec('10:10:00'), t_start, t_end)):
-                    label.append('DOS-SLOWLORIS')
+                    label.append(3) #DOS-SLOWLORIS
                     count_DoS_slowloris += 1
 
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('10:14:00'), hms_to_sec('10:35:00'), t_start, t_end)):
-                    label.append('DOS-SLOWHTTPTEST')
+                    label.append(4) #DOS-SLOWHTTPTEST
                     count_DoS_slowhttptest += 1
 
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('10:43:00'), hms_to_sec('11:00:00'), t_start, t_end)):
-                    label.append('DOS-HULK')
+                    label.append(5) #DOS-HULK
                     count_DoS_hulk += 1
 
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('11:10:00'), hms_to_sec('11:23:00'), t_start, t_end)):
-                    label.append('DOS-GOLDENEYE')
+                    label.append(6) #DOS-GOLDENEYE
                     count_DoS_goldeneye += 1
 
                 elif ((ip_src == ip_attack_3) or (ip_dst == ip_attack_3) or
                       (ip_src == ip_attack_4) or (ip_dst == ip_attack_4)) and \
                         (flow_included_in_window(hms_to_sec('15:12:00'), hms_to_sec('15:32:00'), t_start, t_end)):
-                    label.append('HEARTBLEED')
+                    label.append(7) #HEARTBLEED
                     count_heartbleed += 1
 
                 else:
-                    label.append('BENIGN')
+                    label.append(0) #BENIGN
                     count_benign += 1
 
             elif day == 'Thursday':
                 if ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                     (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('9:20:00'), hms_to_sec('10:00:00'), t_start, t_end)):
-                    label.append('BRUTE-FORCE')
+                    label.append(8) #BRUTE-FORCE
                     count_brute_force += 1
 
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('10:15:00'), hms_to_sec('10:35:00'), t_start, t_end)):
-                    label.append('XSS')
+                    label.append(9) #XSS
                     count_xss += 1
 
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('10:40:00'), hms_to_sec('10:42:00'), t_start, t_end)):
-                    label.append('SQL-INJECTION')
+                    label.append(10) #SQL-INJECTION
                     count_sql_injection += 1
 
                 elif ((ip_src == ip_attack_5) or (ip_dst == ip_attack_5)) and \
                         (flow_included_in_window(hms_to_sec('14:19:00'), hms_to_sec('14:21:00'), t_start, t_end)):
-                    label.append('INFILTRATION')
+                    label.append(11) #INFILTRATION
                     count_infiltration += 1
 
                 elif ((ip_src == ip_attack_5) or (ip_dst == ip_attack_5)) and \
                         (flow_included_in_window(hms_to_sec('14:33:00'), hms_to_sec('14:35:00'), t_start, t_end)):
-                    label.append('INFILTRATION')
+                    label.append(11) #INFILTRATION
                     count_infiltration += 1
 
                 elif ((ip_src == ip_attack_5) or (ip_dst == ip_attack_5)) and \
                         (flow_included_in_window(hms_to_sec('14:53:00'), hms_to_sec('15:00:00'), t_start, t_end)):
-                    label.append('INFILTRATION')
+                    label.append(11) #INFILTRATION
                     count_infiltration += 1
 
                 elif ((ip_src == ip_attack_5) or (ip_dst == ip_attack_5) or
                       (ip_src == ip_attack_6) or (ip_dst == ip_attack_6)) and \
                         (flow_included_in_window(hms_to_sec('15:04:00'), hms_to_sec('115:45:00'), t_start, t_end)):
-                    label.append('INFILTRATION')
+                    label.append(11) #INFILTRATION
                     count_infiltration += 1
 
                 else:
-                    label.append('BENIGN')
+                    label.append(0) #BENIGN
                     count_benign += 1
 
             else:
                 if (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
                         (flow_included_in_window(hms_to_sec('10:02:00'), hms_to_sec('11:02:00'), t_start, t_end)):
-                    label.append('BOTNET ARES')
+                    label.append(12) #BOTNET ARES
                     count_botnet_ares += 1
 
                 elif (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
                         (flow_included_in_window(hms_to_sec('13:55:00'), hms_to_sec('15:29:00'), t_start, t_end)):
-                    label.append('PORT SCAN')
+                    label.append(13) #PORT SCAN
                     count_port_scan += 1
 
                 elif (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
                         (flow_included_in_window(hms_to_sec('15:56:00'), hms_to_sec('16:16:00'), t_start, t_end)):
-                    label.append('DDOS LOIT')
+                    label.append(14) #DDOS LOIT
                     count_Ddos_loit += 1
 
                 else:
-                    label.append('BENIGN')
+                    label.append(0) #BENIGN
                     count_benign += 1
 
             flow_count += 1
@@ -738,10 +748,19 @@ if run_label_dataset:
 
     # CONCATENATE LABEL CSV FILES
     files_list = []
-    for day in week_days:
-        files_list.append('/media/external_wd/jpriam/' + day + '_label.csv')
-        global_dataset = pd.concat([pd.read_csv(f) for f in files_list])
-        global_dataset.to_csv('/media/external_wd/jpriam/dataset.csv')
+    for day in days_list:
+        if save_on_external_storage:
+            files_list.append(ext_storage_path + day + '.csv')
+        else:
+            files_list.append(day + '.csv')
+
+    global_dataset = pd.concat([pd.read_csv(f) for f in files_list])
+    global_dataset.drop('Unnamed: 0', axis=1, inplace=True)
+
+    if save_on_external_storage:
+        global_dataset.to_csv(ext_storage_path + 'dataset.csv')
+    else:
+        global_dataset.to_csv('dataset.csv')
 
     print('\nAdding label to dataset took {} seconds'.format(time.time() - label_start_time))
 # LABEL ADDED TO DATASET _______________________________________________________________________________________________
@@ -749,40 +768,38 @@ if run_label_dataset:
 
 # BINARIZE DATASET & REMOVE UNUSEFUL FEATURES __________________________________________________________________________
 if run_binarize_dataset:
-    df = pd.read_csv('dataset_with_label.csv')
 
-    # REMOVE SOME FEATURES
-    df.drop('Unnamed: 0.1', axis=1, inplace=True)
+    if save_on_external_storage:
+        df = pd.read_csv(ext_storage_path + 'dataset.csv')
+    else:
+        df = pd.read_csv('dataset.csv')
+
     df.drop('Unnamed: 0', axis=1, inplace=True)
-    df.drop('t_start', axis=1, inplace=True)
-    df.drop('t_end', axis=1, inplace=True)
-    df.drop('ip_src', axis=1, inplace=True)
-    df.drop('ip_dst', axis=1, inplace=True)
-    df.drop('sec_1_ip_src', axis=1, inplace=True)
-    df.drop('sec_2_ip_src', axis=1, inplace=True)
-    df.drop('sec_3_ip_src', axis=1, inplace=True)
-    df.drop('sec_4_ip_src', axis=1, inplace=True)
-    df.drop('sec_5_ip_src', axis=1, inplace=True)
 
     print(df['label'].value_counts())
-
     for index in df.index:
-        if index % 10000 == 0:
+        if index % 100000 == 0:
             print('{} rows processed'.format(index))
 
-        if df['label'][index] != 'BENIGN':
+        if df['label'][index] != 0:
             df.at[index, 'label'] = 1
-        else:
-            df.at[index, 'label'] = 0
 
     print(df['label'].value_counts())
-    df.to_csv('dataset.csv')
+
+    if save_on_external_storage:
+        df.to_csv(ext_storage_path + 'dataset_bin.csv')
+    else:
+        df.to_csv('dataset_bin.csv')
 # DATASET UPDATED ______________________________________________________________________________________________________
 
 
-# BALANCE DATASET & PERFORM ONE-HOT ENCODING ___________________________________________________________________________
-if run_balance_dataset:
-    df = pd.read_csv('dataset.csv')
+# BALANCE BINARY DATASET & PERFORM ONE-HOT ENCODING ____________________________________________________________________
+if run_balance_binary_dataset:
+    if save_on_external_storage:
+        df = pd.read_csv(ext_storage_path + 'dataset_bin.csv')
+    else:
+        df = pd.read_csv('dataset_bin.csv')
+
     df.drop('Unnamed: 0', axis=1, inplace=True)
 
     X = df.iloc[:, 0:-1]
@@ -790,12 +807,59 @@ if run_balance_dataset:
 
     X = pd.get_dummies(X, columns=['proto'])
     print("One-hot encoding performed")
-
+    
+    print('\nNumber of samples per class before RandomUnderSampler: \n', df['label'].value_counts())
     under = RandomUnderSampler(sampling_strategy=1)
     new_df, new_df_label = under.fit_resample(X, Y)
-    new_df['label'] = new_df_label['label']
+    new_df['label'] = new_df_label
+    print('Number of samples per class after RandomUnderSampler: \n', new_df['label'].value_counts())
+    
+    if save_on_external_storage:
+        new_df.to_csv(ext_storage_path + 'dataset_bin.csv')
+    else:
+        new_df.to_csv('dataset_bin.csv')
+    
+# DATASET UPDATED ______________________________________________________________________________________________________
 
-    new_df.to_csv('dataset.csv')
+
+# BALANCE MULTI-CLASS DATASET & PERFORM ONE-HOT ENCODING _______________________________________________________________
+if run_balance_multiclass_dataset:
+    
+    if save_on_external_storage:
+        df = pd.read_csv(ext_storage_path + 'dataset.csv')
+    else:
+        df = pd.read_csv('dataset.csv')
+
+    df.drop('Unnamed: 0', axis=1, inplace=True)
+    
+    print("\nStarting to rename label and remove samples")
+    for index in df.index:
+        if index % 100000 == 0:
+            print('{} rows processed'.format(index))
+
+        if (df['label'][index] == 13) or (df['label'][index] == 9) or (df['label'][index] == 14) or (df['label'][index] == 6) or (df['label'][index] == 10) :
+            df.drop(labels=index, axis=0, inplace=True)
+    
+
+    X = df.iloc[:, 0:-1]
+    Y = df['label']  # Labels
+
+    X = pd.get_dummies(X, columns=['proto'])
+    print("One-hot encoding performed")
+    
+    print('\nNumber of samples per class before RandomUnderSampler: \n', df['label'].value_counts())    
+    sampling_strategy = {0: 2000, 1: 2000, 2: 2000, 3: 2000, 4: 2000, 5: 2000, 11: 2000, 12: 2000}
+    under = RandomUnderSampler(sampling_strategy=sampling_strategy)
+    new_df, new_df_label = under.fit_resample(X, Y)   
+    new_df['label'] = new_df_label
+    print('Number of samples per class after RandomUnderSampler: \n', new_df['label'].value_counts())
+    
+    
+    if save_on_external_storage:
+        new_df.to_csv(ext_storage_path + 'dataset_multi.csv')
+    else:
+        new_df.to_csv('dataset_multi.csv')
+    
 # DATASET UPDATED ______________________________________________________________________________________________________
 
 print('\nCreating dataset took {} seconds'.format(time.time() - start_time))

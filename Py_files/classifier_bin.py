@@ -10,11 +10,11 @@ from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSe
 from visualization import visualize_nn
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
-run_param_optimization = 0  # perform RandomSearchCV
-run_NN = 0  # train and test the neural network
-plot_network = 0  # plot a view of the NN (not advised if RandomSearchCV performing)
-save_model = 0  # save the model structure and parameters on the disk
-load_model = 1  # load model from disk and evaluate it on testing set
+run_param_optimization = False  # perform RandomSearchCV
+run_NN = False  # train and test the neural network
+plot_network = False  # plot a view of the NN (not advised if RandomSearchCV performing)
+save_model = False  # save the model structure and parameters on the disk
+load_model = True  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
 layer1_neurons = 25
@@ -66,7 +66,7 @@ def R2(y, y_hat):
 
 # BUILD MODEL __________________________________________________________________________________________________________
 def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
-    n_features = 32
+    n_features = 30
     inputs = layers.Input(name="input", shape=(n_features,))  # hidden layer 1
     h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
     # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
@@ -91,20 +91,22 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
 
 # PREPARE THE DATASET __________________________________________________________________________________________________
 # df = pd.read_csv('CIC_features_binary.csv').iloc[300000:500000]
-df = pd.read_csv('binary_dataset2.csv') #.iloc[500000:600000]
+df = pd.read_csv('dataset_bin.csv') #.iloc[0:300000]
 print(df['label'].value_counts())
 
 # REMOVE SOME FEATURES ___________________________
 df.drop('Unnamed: 0', axis=1, inplace=True)
-df.drop('Unnamed: 0.1', axis=1, inplace=True)
+df.drop('t_start', axis=1, inplace=True)
+df.drop('t_end', axis=1, inplace=True)
+df.drop('ip_src', axis=1, inplace=True)
+df.drop('ip_dst', axis=1, inplace=True)
+df.drop('prt_src', axis=1, inplace=True)
+df.drop('prt_dst', axis=1, inplace=True)
 
 X = df.iloc[:, 0:-1]
 Y = df['label']  # Labels
 
-X_encoded = pd.get_dummies(X, columns=['proto'])
-print("One-hot encoding performed")
-
-X_train, X_test, y_train, y_test = train_test_split(X_encoded, Y, test_size=0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
 print("Dataset has been split")
 
 under = RandomUnderSampler(sampling_strategy=1)
