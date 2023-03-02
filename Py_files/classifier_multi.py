@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 from imblearn.under_sampling import RandomUnderSampler
 from keras.saving.legacy.model_config import model_from_json
 from keras.wrappers.scikit_learn import KerasClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, KFold, StratifiedKFold
+from sklearn.metrics import confusion_matrix
+import numpy as np
+import seaborn as sn
 
 from visualization import visualize_nn
 
@@ -13,15 +16,16 @@ from visualization import visualize_nn
 run_param_optimization = False  # perform RandomSearchCV
 run_NN = True  # train and test the neural network
 plot_network = True  # plot a view of the NN (not advised if RandomSearchCV performing)
-save_model = False  # save the model structure and parameters on the disk
+save_model = False  # save the model structure and parameters on the disk / only works if run_NN = True
 load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
-layer1_neurons = 25
-layer2_neurons = 15
+output_size = 13
+layer1_neurons = 60
+layer2_neurons = 30
 batch_size = 128
-epochs = 100
-learning_rate = 0.005
+epochs = 600
+learning_rate = 0.0001
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
 # for randomizedSearchCV
@@ -71,8 +75,10 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
     h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
     # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
     h2 = layers.Dense(name="h2", units=layer2_neurons, activation='relu')(h1)
+    # h3 = layers.Dense(name="h3", units=20, activation='relu')(h2)
+    # h4 = layers.Dense(name="h4", units=10, activation='relu')(h3)
     # h2 = layers.Dropout(name="drop2", rate=0.2)(h2)  ### layer output
-    outputs = layers.Dense(name="output", units=9, activation='softmax')(h2)
+    outputs = layers.Dense(name="output", units=output_size, activation='softmax')(h2)
 
     model = models.Model(inputs=inputs, outputs=outputs, name="DeepNN")
     model.summary()
@@ -96,23 +102,26 @@ print(df['label'].value_counts())
 
 # REMOVE SOME FEATURES ___________________________
 df.drop('Unnamed: 0', axis=1, inplace=True)
-df.drop('t_start', axis=1, inplace=True)
-df.drop('t_end', axis=1, inplace=True)
-df.drop('ip_src', axis=1, inplace=True)
-df.drop('ip_dst', axis=1, inplace=True)
-df.drop('prt_src', axis=1, inplace=True)
-df.drop('prt_dst', axis=1, inplace=True)
+
+print(df)
 
 X = df.iloc[:, 0:-1]
 Y = df['label']  # Labels
 Y = pd.get_dummies(Y, columns=['label'])
 
-
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, test_size=0.2)
 print("Dataset has been split")
+
+print('\n Partition of dataset:')
+print('Number of samples per class in training set: \n{}'.format(y_train.value_counts()))
+print('Number of samples per class in validation set: \n{}'.format(y_validation.value_counts()))
+print('Number of samples per class in validation set: \n{} \n'.format(y_test.value_counts()))
 
 X_train = X_train.values
 y_train = y_train.values
+X_validation = X_validation.values
+y_validation = y_validation.values
 X_test = X_test.values
 y_test = y_test.values
 # ______________________________________________________________________________________________________________________
@@ -154,8 +163,8 @@ if run_NN:
 
     # train/validation _________________________________________________________________________________________________
     training = model.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=epochs, shuffle=True, verbose=0,
-                         validation_split=0.2)
-    testing = model.evaluate(X_test, y_test, batch_size=100)
+                         validation_data=(X_validation, y_validation))
+    testing = model.evaluate(X_validation, y_validation, batch_size=100)
     # __________________________________________________________________________________________________________________
 
     # PRINT RESULTS ____________________________________________________________________________________________________
@@ -187,6 +196,20 @@ if run_NN:
         ax22.plot(training.history['val_' + metric], label=metric)
         ax22.set_ylabel("Score", color="steelblue")
     plt.show()
+
+    # print confusion matrix
+    #Predict
+    y_prediction = model.predict(X_validation)
+    y_prediction = np.argmax(y_prediction, axis = 1)
+    y_validation=np.argmax(y_validation, axis=1)
+    #Create confusion matrix and normalizes it over predicted (columns)
+    result = confusion_matrix(y_validation, y_prediction , normalize='pred')
+    df_cm = pd.DataFrame(result, range(output_size), range(output_size))
+    # plt.figure(figsize=(10,7))
+    sn.set(font_scale=1) # for label size
+    sn.heatmap(df_cm, annot=True, annot_kws={"size": 12}) # font size
+
+    plt.show()
     # __________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
@@ -195,10 +218,10 @@ if run_NN:
 if save_model & run_NN:
     # serialize model to JSON
     model_json = model.to_json()
-    with open("model.json", "w") as json_file:
+    with open("model_multi.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
-    model.save_weights("model.h5")
+    model.save_weights("model_multi.h5")
     print("\nSaved model to disk")
 # ______________________________________________________________________________________________________________________
 
@@ -206,17 +229,31 @@ if save_model & run_NN:
 # LOAD MODEL FROM DISK AND EVALUATE ON TESTING SET _____________________________________________________________________
 if load_model:
     # load json and create model
-    json_file = open('model.json', 'r')
+    json_file = open('model_multi.json', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
     # load weights into new model
-    loaded_model.load_weights("model.h5")
+    loaded_model.load_weights("model_multi.h5")
     print("\nLoaded model from disk")
 
     # evaluate loaded model on test data
     loaded_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', F1])
     score = loaded_model.evaluate(X_test, y_test, verbose=0)
     print("{}: {}%".format(loaded_model.metrics_names[1], score[1] * 100))
-# ______________________________________________________________________________________________________________________
+
+    # print confusion matrix
+    #Predict
+    y_prediction = loaded_model.predict(X_test)
+    y_prediction = np.argmax(y_prediction, axis = 1)
+    y_test=np.argmax(y_test, axis=1)
+    #Create confusion matrix and normalizes it over predicted (columns)
+    result = confusion_matrix(y_test, y_prediction , normalize='pred')
+    df_cm = pd.DataFrame(result, range(output_size), range(output_size))
+    # plt.figure(figsize=(10,7))
+    sn.set(font_scale=1) # for label size
+    sn.heatmap(df_cm, annot=True, annot_kws={"size": 12}) # font size
+
+    plt.show()
+    # ______________________________________________________________________________________________________________________
 

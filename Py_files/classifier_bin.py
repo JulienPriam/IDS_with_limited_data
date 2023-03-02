@@ -197,10 +197,10 @@ if run_NN:
 if save_model & run_NN:
     # serialize model to JSON
     model_json = model.to_json()
-    with open("model.json", "w") as json_file:
+    with open("model_bin.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
-    model.save_weights("model.h5")
+    model.save_weights("model_bin.h5")
     print("\nSaved model to disk")
 # ______________________________________________________________________________________________________________________
 
@@ -208,12 +208,12 @@ if save_model & run_NN:
 # LOAD MODEL FROM DISK AND EVALUATE ON TESTING SET _____________________________________________________________________
 if load_model:
     # load json and create model
-    json_file = open('model.json', 'r')
+    json_file = open('model_bin.json', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
     # load weights into new model
-    loaded_model.load_weights("model.h5")
+    loaded_model.load_weights("model_bin.h5")
     print("\nLoaded model from disk")
 
     # evaluate loaded model on test data

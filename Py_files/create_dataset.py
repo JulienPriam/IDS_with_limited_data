@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from dpkt.utils import inet_to_str
 from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import SMOTE
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
 run_features_extraction = False
@@ -84,7 +85,6 @@ if run_features_extraction:
         for timestamp, buf in pcap_file:
             if count == 1:
                 global_t0 = datetime.datetime.utcfromtimestamp(timestamp - offset)
-                print('Start time : ', global_t0)
             if count % 1000000 == 0:
                 print('{} packets have been processed in {}.pcap file'.format(count, day))
 
@@ -141,7 +141,7 @@ if run_features_extraction:
 
         f.close()
         pkt_dict_time = time.time()
-        print('\nDictionary of packets created in {} seconds'.format(pkt_dict_time - start_time))
+        print('\nDictionary of packets created in {} seconds'.format(pkt_dict_time - start_time_file))
         print('Number of TCP & UDP packets : {}'.format(len(packet_dict['pkt_num'])))
 
         tuplist_flowid = {}
@@ -398,7 +398,6 @@ if run_features_extraction:
         'sec_3_ip_src': sec_3_ip_src_list_bi,
         'sec_4_ip_src': sec_4_ip_src_list_bi,
         'sec_5_ip_src': sec_5_ip_src_list_bi}
-
         'num_src_flows_60': num_src_flows_60_list,
         'src_ip_dst_prt_delta_60': src_ip_dst_prt_delta_60_list,
         'num_src_flows_120': num_src_flows_120_list,
@@ -482,7 +481,6 @@ if run_features_extraction:
                         sec_3_ip_src_list_bi.append(str(meta_list_time_0[i] // 180) + '_' + uniflow_dict['ip_src'][i])
                         sec_4_ip_src_list_bi.append(str(meta_list_time_0[i] // 240) + '_' + uniflow_dict['ip_src'][i])
                         sec_5_ip_src_list_bi.append(str(meta_list_time_0[i] // 300) + '_' + uniflow_dict['ip_src'][i])
-
                         for t in range(5):
                             current_time_window = (t + 1) * 60
                             if uniflow_dict['ip_src'][i] not in sibilings_counts[current_time_window]:
@@ -495,15 +493,12 @@ if run_features_extraction:
                                 for temp in bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]]:
                                     if temp < min_time:
                                         del_counter += 1
-
                                 sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] -= del_counter
                                 del delta_avg[current_time_window][uniflow_dict['ip_src'][i]][0:del_counter]
                                 del bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]][0:del_counter]
-
                             sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] += 1
                             delta_avg[current_time_window][uniflow_dict['ip_src'][i]].append(uniflow_dict['prt_dst'][i])
                             bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]].append(meta_list_time_0[i])
-
                             if meta_list_time_0[i] >= current_time_window:
                                 num_src_flows_list.append(
                                     int(sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]]))
@@ -524,6 +519,7 @@ if run_features_extraction:
         print('\nDictionary of biflow created in {} seconds'.format(biflow_dict_time - uniflow_dict_time))
 
         df = pd.DataFrame(biflow_dict)
+        print(df)
         df.to_csv(output_file_path)
 
         print('\nParsing {} file took {} seconds'.format(day, time.time() - start_time_file))
@@ -565,21 +561,21 @@ if run_label_dataset:
 
 
     flow_count = 0
-    count_benign = 0
-    count_ftp_patator = 0
-    count_ssh_patator = 0
-    count_DoS_slowloris = 0
-    count_DoS_slowhttptest = 0
-    count_DoS_hulk = 0
-    count_DoS_goldeneye = 0
-    count_heartbleed = 0
-    count_brute_force = 0
-    count_xss = 0
-    count_sql_injection = 0
-    count_infiltration = 0
-    count_botnet_ares = 0
-    count_port_scan = 0
-    count_Ddos_loit = 0
+    count_benign = 0    # 0
+    count_ftp_patator = 0   # 1
+    count_ssh_patator = 0   # 2
+    count_DoS_slowloris = 0 # 3
+    count_DoS_slowhttptest = 0  # 4
+    count_DoS_hulk = 0  # 5
+    count_DoS_goldeneye = 0 # 6
+    count_heartbleed = 0    # 7
+    count_brute_force = 0   # 8
+    count_xss = 0   # 9
+    count_sql_injection = 0 # 10
+    count_infiltration = 0  # 11
+    count_botnet_ares = 0   # 12
+    count_port_scan = 0 # 13
+    count_Ddos_loit = 0 # 14
 
     for day in days_list:
 
@@ -594,6 +590,7 @@ if run_label_dataset:
 
         df = pd.read_csv(input_file)
         df.drop('Unnamed: 0', axis=1, inplace=True)
+
         label = []
 
         # ADD LABEL IF MATCHING WITH ATTACKER IP ______________________
@@ -831,34 +828,59 @@ if run_balance_multiclass_dataset:
         df = pd.read_csv('dataset.csv')
 
     df.drop('Unnamed: 0', axis=1, inplace=True)
+    df.drop('t_start', axis=1, inplace=True)
+    df.drop('t_end', axis=1, inplace=True)
+    df.drop('ip_src', axis=1, inplace=True)
+    df.drop('ip_dst', axis=1, inplace=True)
+    df.drop('prt_src', axis=1, inplace=True)
+    df.drop('prt_dst', axis=1, inplace=True)
+
+    print(df)
+
+    print(df['label'].value_counts())
+    
     
     print("\nStarting to rename label and remove samples")
     for index in df.index:
         if index % 100000 == 0:
             print('{} rows processed'.format(index))
 
-        if (df['label'][index] == 13) or (df['label'][index] == 9) or (df['label'][index] == 14) or (df['label'][index] == 6) or (df['label'][index] == 10) :
+        if (df['label'][index] == 7) or (df['label'][index] == 10):
             df.drop(labels=index, axis=0, inplace=True)
-    
+
+
 
     X = df.iloc[:, 0:-1]
     Y = df['label']  # Labels
 
     X = pd.get_dummies(X, columns=['proto'])
     print("One-hot encoding performed")
+    print(X)
     
     print('\nNumber of samples per class before RandomUnderSampler: \n', df['label'].value_counts())    
-    sampling_strategy = {0: 2000, 1: 2000, 2: 2000, 3: 2000, 4: 2000, 5: 2000, 11: 2000, 12: 2000}
+    sampling_strategy = {0: 100, 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100, 8: 100, 9: 100, 11: 100, 12: 100, 13: 100, 14: 100}
+
     under = RandomUnderSampler(sampling_strategy=sampling_strategy)
-    new_df, new_df_label = under.fit_resample(X, Y)   
-    new_df['label'] = new_df_label
-    print('Number of samples per class after RandomUnderSampler: \n', new_df['label'].value_counts())
+    X, Y = under.fit_resample(X, Y)
+    X['label'] = Y
+    print('Number of samples per class after RandomUnderSampler: \n', Y.value_counts())
+    print(Y)
     
+    """
+    # define oversampling strategy
+    smote = SMOTE()
+    X, Y = smote.fit_resample(X, Y)
+    X['label'] = Y
+    print("After oversampling: ", X['label'].value_counts())
+    print(X)
+    """
     
     if save_on_external_storage:
-        new_df.to_csv(ext_storage_path + 'dataset_multi.csv')
+        X.to_csv(ext_storage_path + 'dataset_multi.csv')
     else:
-        new_df.to_csv('dataset_multi.csv')
+        X.to_csv('dataset_multi.csv')
+
+
     
 # DATASET UPDATED ______________________________________________________________________________________________________
 
