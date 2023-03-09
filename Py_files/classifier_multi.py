@@ -16,7 +16,7 @@ from visualization import visualize_nn
 run_param_optimization = False  # perform RandomSearchCV
 run_NN = True  # train and test the neural network
 plot_network = True  # plot a view of the NN (not advised if RandomSearchCV performing)
-save_model = False  # save the model structure and parameters on the disk / only works if run_NN = True
+save_model = True  # save the model structure and parameters on the disk / only works if run_NN = True
 load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
@@ -96,7 +96,6 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
 
 
 # PREPARE THE DATASET __________________________________________________________________________________________________
-# df = pd.read_csv('CIC_features_binary.csv').iloc[300000:500000]
 df = pd.read_csv('dataset_multi.csv') #.iloc[0:300000]
 print(df['label'].value_counts())
 

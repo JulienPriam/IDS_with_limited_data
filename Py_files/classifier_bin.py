@@ -11,17 +11,17 @@ from visualization import visualize_nn
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
 run_param_optimization = False  # perform RandomSearchCV
-run_NN = False  # train and test the neural network
-plot_network = False  # plot a view of the NN (not advised if RandomSearchCV performing)
+run_NN = True  # train and test the neural network
+plot_network = True  # plot a view of the NN (not advised if RandomSearchCV performing)
 save_model = False  # save the model structure and parameters on the disk
-load_model = True  # load model from disk and evaluate it on testing set
+load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
-layer1_neurons = 25
-layer2_neurons = 15
-batch_size = 128
-epochs = 100
-learning_rate = 0.005
+layer1_neurons = 15 # best 30
+layer2_neurons = 12 # best 25
+batch_size = 32 # best 128
+epochs = 50
+learning_rate = 0.001
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
 # for randomizedSearchCV

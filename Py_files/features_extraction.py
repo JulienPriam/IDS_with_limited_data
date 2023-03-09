@@ -9,16 +9,17 @@ from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import SMOTE
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
-run_features_extraction = False
+run_features_extraction = True
 run_label_dataset = False
 run_binarize_dataset = False
 run_balance_binary_dataset = False
-run_balance_multiclass_dataset = True
+run_balance_multiclass_dataset = False
 
 save_on_external_storage = True
 dataset_path = '/media/external_wd/jpriam/'  # path to pcap files
 ext_storage_path = '/media/external_wd/jpriam/'
-days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']  # days to consider
+# days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']  # days to consider
+days_list = ['Monday']  # days to consider
 # ______________________________________________________________________________________________________________________
 
 
@@ -178,14 +179,6 @@ if run_features_extraction:
 
         del tuplist_flowid
 
-        """
-        flow_list_dict = identify_flows()
-        print(flow_list_dict[0][1])
-        print(flow_list_dict[1][0])
-        print(flow_list_dict[0])
-        print(flow_list_dict[1])
-        """
-
         meta_list_time_0 = []
 
         t_start_list_uni = []
@@ -195,6 +188,9 @@ if run_features_extraction:
         prt_src_list_uni = []
         prt_dst_list_uni = []
         proto_list_uni = []
+        flow_duration_list_uni = []
+        flow_bytes_sec_list_uni = []
+        flow_pkt_sec_list_uni = []
         num_pkts_list_uni = []
         mean_iat_list_uni = []
         std_iat_list_uni = []
@@ -218,6 +214,9 @@ if run_features_extraction:
                         'prt_src': prt_src_list_uni,
                         'prt_dst': prt_dst_list_uni,
                         'proto': proto_list_uni,
+                        'flow_duration': flow_duration_list_uni,
+                        'flow_bytes_sec': flow_bytes_sec_list_uni,
+                        'flow_pkt_sec': flow_pkt_sec_list_uni,
                         'num_pkts': num_pkts_list_uni,
                         'mean_iat': mean_iat_list_uni,
                         'std_iat': std_iat_list_uni,
@@ -255,6 +254,7 @@ if run_features_extraction:
             prt_src_list_uni.append(flow_list_dict[index][0][2])
             prt_dst_list_uni.append(flow_list_dict[index][0][3])
             proto_list_uni.append(flow_list_dict[index][0][4])
+            # pkt_len_list_uni.append(flow_list_dict[index][0][7])
             num_pkts = len(flow_list_dict[index])
             num_pkts_list_uni.append(num_pkts)
             mean_pkt_len_list_uni.append(sum(length_list) / num_pkts)
@@ -280,6 +280,7 @@ if run_features_extraction:
                 # packet and each sucessive packet: (t2-t1) + (t3-t1) + (t4-t1) / n
                 time_list.sort()  # sort into ascending order now
                 t_start_list_uni.append(time_list[0])
+                flow_duration_list_uni.append(t_end_list_uni[-1] - t_start_list_uni[-1])
                 t0 = time_list[0]
                 time_total = 0.0
                 for f in range(1, num_pkts):
@@ -294,6 +295,7 @@ if run_features_extraction:
                 min_iat_list_uni.append(0.0)
                 max_iat_list_uni.append(0.0)
                 mean_offset_list_uni.append(0.0)
+                flow_duration_list_uni.append(0.0)
 
             meta_list_time_0.append((datetime.datetime.utcfromtimestamp(pkt[6]) - global_t0).seconds)
 
@@ -308,6 +310,7 @@ if run_features_extraction:
         prt_src_list_bi = []
         prt_dst_list_bi = []
         proto_list_bi = []
+        flow_duration_list_bi =[]
         fwd_num_pkts_list_bi = []
         bwd_num_pkts_list_bi = []
         fwd_mean_iat_list_bi = []
@@ -363,6 +366,7 @@ if run_features_extraction:
                        'prt_src': prt_src_list_bi,
                        'prt_dst': prt_dst_list_bi,
                        'proto': proto_list_bi,
+                       'flow_duration': flow_duration_list_bi,
                        'fwd_num_pkts': fwd_num_pkts_list_bi,
                        'bwd_num_pkts': bwd_num_pkts_list_bi,
                        'fwd_mean_iat': fwd_mean_iat_list_bi,
@@ -446,6 +450,7 @@ if run_features_extraction:
                         prt_src_list_bi.append(uniflow_dict['prt_src'][i])
                         prt_dst_list_bi.append(uniflow_dict['prt_dst'][i])
                         proto_list_bi.append(uniflow_dict['proto'][i])
+                        flow_duration_list_bi.append(uniflow_dict['flow_duration'][i])
                         fwd_num_pkts_list_bi.append(uniflow_dict['num_pkts'][i])
                         bwd_num_pkts_list_bi.append(uniflow_dict['num_pkts'][j])
                         fwd_mean_iat_list_bi.append(uniflow_dict['mean_iat'][i])
@@ -519,8 +524,10 @@ if run_features_extraction:
         print('\nDictionary of biflow created in {} seconds'.format(biflow_dict_time - uniflow_dict_time))
 
         df = pd.DataFrame(biflow_dict)
-        print(df)
-        df.to_csv(output_file_path)
+        print(df.head())
+        for col in df.columns:
+            print(col)
+        # df.to_csv(output_file_path)
 
         print('\nParsing {} file took {} seconds'.format(day, time.time() - start_time_file))
 
@@ -568,14 +575,14 @@ if run_label_dataset:
     count_DoS_slowhttptest = 0  # 4
     count_DoS_hulk = 0  # 5
     count_DoS_goldeneye = 0 # 6
-    count_heartbleed = 0    # 7
+    count_Ddos_loit = 0 # 7
     count_brute_force = 0   # 8
     count_xss = 0   # 9
-    count_sql_injection = 0 # 10
+    count_port_scan = 0 # 10
     count_infiltration = 0  # 11
     count_botnet_ares = 0   # 12
-    count_port_scan = 0 # 13
-    count_Ddos_loit = 0 # 14
+    count_sql_injection = 0 # 13
+    count_heartbleed = 0    # 14
 
     for day in days_list:
 
@@ -649,7 +656,7 @@ if run_label_dataset:
                 elif ((ip_src == ip_attack_3) or (ip_dst == ip_attack_3) or
                       (ip_src == ip_attack_4) or (ip_dst == ip_attack_4)) and \
                         (flow_included_in_window(hms_to_sec('15:12:00'), hms_to_sec('15:32:00'), t_start, t_end)):
-                    label.append(7) #HEARTBLEED
+                    label.append(14) #HEARTBLEED
                     count_heartbleed += 1
 
                 else:
@@ -672,7 +679,7 @@ if run_label_dataset:
                 elif ((ip_src == ip_attack_1) or (ip_dst == ip_attack_1) or
                       (ip_src == ip_attack_2) or (ip_dst == ip_attack_2)) and \
                         (flow_included_in_window(hms_to_sec('10:40:00'), hms_to_sec('10:42:00'), t_start, t_end)):
-                    label.append(10) #SQL-INJECTION
+                    label.append(13) #SQL-INJECTION
                     count_sql_injection += 1
 
                 elif ((ip_src == ip_attack_5) or (ip_dst == ip_attack_5)) and \
@@ -708,12 +715,12 @@ if run_label_dataset:
 
                 elif (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
                         (flow_included_in_window(hms_to_sec('13:55:00'), hms_to_sec('15:29:00'), t_start, t_end)):
-                    label.append(13) #PORT SCAN
+                    label.append(10) #PORT SCAN
                     count_port_scan += 1
 
                 elif (ip_src == ip_attack_2) or (ip_dst == ip_attack_2) and \
                         (flow_included_in_window(hms_to_sec('15:56:00'), hms_to_sec('16:16:00'), t_start, t_end)):
-                    label.append(14) #DDOS LOIT
+                    label.append(7) #DDOS LOIT
                     count_Ddos_loit += 1
 
                 else:
@@ -845,7 +852,7 @@ if run_balance_multiclass_dataset:
         if index % 100000 == 0:
             print('{} rows processed'.format(index))
 
-        if (df['label'][index] == 7) or (df['label'][index] == 10):
+        if (df['label'][index] == 13) or (df['label'][index] == 14):
             df.drop(labels=index, axis=0, inplace=True)
 
 
@@ -858,7 +865,7 @@ if run_balance_multiclass_dataset:
     print(X)
     
     print('\nNumber of samples per class before RandomUnderSampler: \n', df['label'].value_counts())    
-    sampling_strategy = {0: 100, 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100, 8: 100, 9: 100, 11: 100, 12: 100, 13: 100, 14: 100}
+    sampling_strategy = {0: 100, 1: 100, 2: 100, 3: 100, 4: 100, 5: 100, 6: 100, 7: 100, 8: 100, 9: 100, 10: 100, 11: 100, 12: 100}
 
     under = RandomUnderSampler(sampling_strategy=sampling_strategy)
     X, Y = under.fit_resample(X, Y)
