@@ -6,28 +6,26 @@ import numpy as np
 import pandas as pd
 from dpkt.utils import inet_to_str
 from imblearn.under_sampling import RandomUnderSampler
-from imblearn.over_sampling import SMOTE
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
-run_features_extraction = True
+run_features_extraction = False
 run_label_dataset = False
-run_binarize_dataset = False
-run_balance_binary_dataset = False
+run_binarize_dataset = True
+run_balance_binary_dataset = True
 run_balance_multiclass_dataset = False
 
 save_on_external_storage = True
 dataset_path = '/media/external_wd/jpriam/'  # path to pcap files
 ext_storage_path = '/media/external_wd/jpriam/'
-# days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']  # days to consider
-days_list = ['Monday']  # days to consider
+days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']  # days to consider
 # ______________________________________________________________________________________________________________________
 
 
 start_time = time.time()
-print('Starting create_dataset script\n')
 
 # EXTRACTING FEATURES FROM PCAP FILES __________________________________________________________________________________
 if run_features_extraction:
+    print('\n____Performing features extraction____\n')
     global_t0 = 0
     offset = 10800
 
@@ -188,7 +186,6 @@ if run_features_extraction:
         prt_src_list_uni = []
         prt_dst_list_uni = []
         proto_list_uni = []
-        flow_duration_list_uni = []
         flow_bytes_sec_list_uni = []
         flow_pkt_sec_list_uni = []
         num_pkts_list_uni = []
@@ -214,7 +211,6 @@ if run_features_extraction:
                         'prt_src': prt_src_list_uni,
                         'prt_dst': prt_dst_list_uni,
                         'proto': proto_list_uni,
-                        'flow_duration': flow_duration_list_uni,
                         'flow_bytes_sec': flow_bytes_sec_list_uni,
                         'flow_pkt_sec': flow_pkt_sec_list_uni,
                         'num_pkts': num_pkts_list_uni,
@@ -254,7 +250,6 @@ if run_features_extraction:
             prt_src_list_uni.append(flow_list_dict[index][0][2])
             prt_dst_list_uni.append(flow_list_dict[index][0][3])
             proto_list_uni.append(flow_list_dict[index][0][4])
-            # pkt_len_list_uni.append(flow_list_dict[index][0][7])
             num_pkts = len(flow_list_dict[index])
             num_pkts_list_uni.append(num_pkts)
             mean_pkt_len_list_uni.append(sum(length_list) / num_pkts)
@@ -280,7 +275,6 @@ if run_features_extraction:
                 # packet and each sucessive packet: (t2-t1) + (t3-t1) + (t4-t1) / n
                 time_list.sort()  # sort into ascending order now
                 t_start_list_uni.append(time_list[0])
-                flow_duration_list_uni.append(t_end_list_uni[-1] - t_start_list_uni[-1])
                 t0 = time_list[0]
                 time_total = 0.0
                 for f in range(1, num_pkts):
@@ -295,8 +289,15 @@ if run_features_extraction:
                 min_iat_list_uni.append(0.0)
                 max_iat_list_uni.append(0.0)
                 mean_offset_list_uni.append(0.0)
-                flow_duration_list_uni.append(0.0)
 
+            flow_duration = t_end_list_uni[-1] - t_start_list_uni[-1]
+            if flow_duration != 0:
+                flow_bytes_sec_list_uni.append(sum(length_list) / flow_duration)
+                flow_pkt_sec_list_uni.append(num_pkts / flow_duration)
+            else:
+                flow_bytes_sec_list_uni.append(0)
+                flow_pkt_sec_list_uni.append(0)
+            
             meta_list_time_0.append((datetime.datetime.utcfromtimestamp(pkt[6]) - global_t0).seconds)
 
         uniflow_dict_time = time.time()
@@ -310,9 +311,17 @@ if run_features_extraction:
         prt_src_list_bi = []
         prt_dst_list_bi = []
         proto_list_bi = []
-        flow_duration_list_bi =[]
+        flow_duration_list_bi = []
+
+        flow_bytes_sec_list_bi = []
+        flow_pkt_sec_list_bi = []
+        fwd_flow_bytes_sec_list_bi = []
+        bwd_flow_bytes_sec_list_bi = []
+        fwd_flow_pkt_sec_list_bi = []
+        bwd_flow_pkt_sec_list_bi = []        
         fwd_num_pkts_list_bi = []
         bwd_num_pkts_list_bi = []
+        pkt_ratio_list_bi = []
         fwd_mean_iat_list_bi = []
         bwd_mean_iat_list_bi = []
         fwd_std_iat_list_bi = []
@@ -339,25 +348,7 @@ if run_features_extraction:
         bwd_num_rst_flags_list_bi = []
         fwd_num_urg_flags_list_bi = []
         bwd_num_urg_flags_list_bi = []
-        """
-        sec_1_ip_src_list_bi = []
-        sec_2_ip_src_list_bi = []
-        sec_3_ip_src_list_bi = []
-        sec_4_ip_src_list_bi = []
-        sec_5_ip_src_list_bi = []     
-        num_src_flows_60_list = []
-        num_src_flows_120_list = []
-        num_src_flows_180_list = []
-        num_src_flows_240_list = []
-        num_src_flows_300_list = []
-        src_ip_dst_prt_delta_60_list = []
-        src_ip_dst_prt_delta_120_list = []
-        src_ip_dst_prt_delta_180_list = []
-        src_ip_dst_prt_delta_240_list = []
-        src_ip_dst_prt_delta_300_list = []
-        num_src_flows_list = []
-        src_ip_dst_prt_delta_list = []
-        """
+
 
         biflow_dict = {'t_start': t_start_list_bi,
                        't_end': t_end_list_bi,
@@ -367,8 +358,15 @@ if run_features_extraction:
                        'prt_dst': prt_dst_list_bi,
                        'proto': proto_list_bi,
                        'flow_duration': flow_duration_list_bi,
+                       'flow_bytes_sec': flow_bytes_sec_list_bi,
+                       'flow_pkt_sec': flow_pkt_sec_list_bi,
+                       'fwd_flow_bytes_sec': fwd_flow_bytes_sec_list_bi,
+                       'bwd_flow_bytes_sec': bwd_flow_bytes_sec_list_bi,
+                       'fwd_flow_pkt_sec': fwd_flow_pkt_sec_list_bi,
+                       'bwd_flow_pkt_sec': bwd_flow_pkt_sec_list_bi,                  
                        'fwd_num_pkts': fwd_num_pkts_list_bi,
                        'bwd_num_pkts': bwd_num_pkts_list_bi,
+                       'pkt_ratio': pkt_ratio_list_bi,
                        'fwd_mean_iat': fwd_mean_iat_list_bi,
                        'bwd_mean_iat': bwd_mean_iat_list_bi,
                        'fwd_std_iat': fwd_std_iat_list_bi,
@@ -396,25 +394,7 @@ if run_features_extraction:
                        'bwd_num_rst_flags': bwd_num_rst_flags_list_bi,
                        'fwd_num_urg_flags': fwd_num_urg_flags_list_bi,
                        'bwd_num_urg_flags': bwd_num_urg_flags_list_bi}
-        """
-        'sec_1_ip_src': sec_1_ip_src_list_bi,
-        'sec_2_ip_src': sec_2_ip_src_list_bi,
-        'sec_3_ip_src': sec_3_ip_src_list_bi,
-        'sec_4_ip_src': sec_4_ip_src_list_bi,
-        'sec_5_ip_src': sec_5_ip_src_list_bi}
-        'num_src_flows_60': num_src_flows_60_list,
-        'src_ip_dst_prt_delta_60': src_ip_dst_prt_delta_60_list,
-        'num_src_flows_120': num_src_flows_120_list,
-        'src_ip_dst_prt_delta_120': src_ip_dst_prt_delta_120_list,
-        'num_src_flows_180': num_src_flows_180_list,
-        'src_ip_dst_prt_delta_180': src_ip_dst_prt_delta_180_list,
-        'num_src_flows_240': num_src_flows_240_list,
-        'src_ip_dst_prt_delta_240': src_ip_dst_prt_delta_240_list,
-        'num_src_flows_300': num_src_flows_300_list,
-        'src_ip_dst_prt_delta_300': src_ip_dst_prt_delta_300_list,
-        'num_src_flows': num_src_flows_list,
-        'src_ip_dst_prt_delta': src_ip_dst_prt_delta_list}
-        """
+
 
         num_flow_processed = 0
         num_flow = len(uniflow_dict['ip_src'])
@@ -450,9 +430,19 @@ if run_features_extraction:
                         prt_src_list_bi.append(uniflow_dict['prt_src'][i])
                         prt_dst_list_bi.append(uniflow_dict['prt_dst'][i])
                         proto_list_bi.append(uniflow_dict['proto'][i])
-                        flow_duration_list_bi.append(uniflow_dict['flow_duration'][i])
+
+                        flow_duration_list_bi.append(t_end_list_bi[-1] - t_start_list_bi[-1])
+                        flow_bytes_sec_list_bi.append((uniflow_dict['flow_bytes_sec'][i] + uniflow_dict['flow_bytes_sec'][j]) / 2)
+                        flow_pkt_sec_list_bi.append((uniflow_dict['flow_pkt_sec'][i] + uniflow_dict['flow_pkt_sec'][j]) / 2)
+                        fwd_flow_bytes_sec_list_bi.append(uniflow_dict['flow_bytes_sec'][i])
+                        bwd_flow_bytes_sec_list_bi.append(uniflow_dict['flow_pkt_sec'][i])
+                        fwd_flow_pkt_sec_list_bi.append(uniflow_dict['flow_bytes_sec'][j])
+                        bwd_flow_pkt_sec_list_bi.append(uniflow_dict['flow_pkt_sec'][j])
+
                         fwd_num_pkts_list_bi.append(uniflow_dict['num_pkts'][i])
                         bwd_num_pkts_list_bi.append(uniflow_dict['num_pkts'][j])
+                        pkt_ratio_list_bi.append(uniflow_dict['num_pkts'][i] / uniflow_dict['num_pkts'][j])
+                        
                         fwd_mean_iat_list_bi.append(uniflow_dict['mean_iat'][i])
                         bwd_mean_iat_list_bi.append(uniflow_dict['mean_iat'][j])
                         fwd_std_iat_list_bi.append(uniflow_dict['std_iat'][i])
@@ -480,41 +470,6 @@ if run_features_extraction:
                         fwd_num_urg_flags_list_bi.append(uniflow_dict['num_urg_flags'][i])
                         bwd_num_urg_flags_list_bi.append(uniflow_dict['num_urg_flags'][j])
 
-                        """
-                        sec_1_ip_src_list_bi.append(str(meta_list_time_0[i] // 60) + '_' + uniflow_dict['ip_src'][i])
-                        sec_2_ip_src_list_bi.append(str(meta_list_time_0[i] // 120) + '_' + uniflow_dict['ip_src'][i])
-                        sec_3_ip_src_list_bi.append(str(meta_list_time_0[i] // 180) + '_' + uniflow_dict['ip_src'][i])
-                        sec_4_ip_src_list_bi.append(str(meta_list_time_0[i] // 240) + '_' + uniflow_dict['ip_src'][i])
-                        sec_5_ip_src_list_bi.append(str(meta_list_time_0[i] // 300) + '_' + uniflow_dict['ip_src'][i])
-                        for t in range(5):
-                            current_time_window = (t + 1) * 60
-                            if uniflow_dict['ip_src'][i] not in sibilings_counts[current_time_window]:
-                                sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] = 0
-                                delta_avg[current_time_window][uniflow_dict['ip_src'][i]] = []
-                                bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]] = []
-                            else:
-                                min_time = meta_list_time_0[t] - current_time_window
-                                del_counter = 0
-                                for temp in bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]]:
-                                    if temp < min_time:
-                                        del_counter += 1
-                                sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] -= del_counter
-                                del delta_avg[current_time_window][uniflow_dict['ip_src'][i]][0:del_counter]
-                                del bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]][0:del_counter]
-                            sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]] += 1
-                            delta_avg[current_time_window][uniflow_dict['ip_src'][i]].append(uniflow_dict['prt_dst'][i])
-                            bi_flow_time[current_time_window][uniflow_dict['ip_src'][i]].append(meta_list_time_0[i])
-                            if meta_list_time_0[i] >= current_time_window:
-                                num_src_flows_list.append(
-                                    int(sibilings_counts[current_time_window][uniflow_dict['ip_src'][i]]))
-                                src_ip_dst_prt_delta_list.append(
-                                    get_mean(delta_avg[current_time_window][uniflow_dict['ip_src'][i]]))
-                            else:
-                                # time < sliding window --> not sliding
-                                num_src_flows_list.append('')
-                                src_ip_dst_prt_delta_list.append('')
-                        """
-
                         uniflow_dict['processed'][i] = True
                         uniflow_dict['processed'][j] = True
 
@@ -527,7 +482,7 @@ if run_features_extraction:
         print(df.head())
         for col in df.columns:
             print(col)
-        # df.to_csv(output_file_path)
+        df.to_csv(output_file_path)
 
         print('\nParsing {} file took {} seconds'.format(day, time.time() - start_time_file))
 
@@ -538,7 +493,7 @@ if run_features_extraction:
 # ADDING LABEL TO DATASET ______________________________________________________________________________________________
 if run_label_dataset:
     label_start_time = time.time()
-    print("\n\nStarting label_dataset script")
+    print("\n____Performing dataset labelling____\n")
 
     ip_attack_1 = '192.168.10.50'
     ip_attack_2 = '172.16.0.1'
@@ -772,6 +727,7 @@ if run_label_dataset:
 
 # BINARIZE DATASET & REMOVE UNUSEFUL FEATURES __________________________________________________________________________
 if run_binarize_dataset:
+    print('\n____Performing dataset binarization____\n')
 
     if save_on_external_storage:
         df = pd.read_csv(ext_storage_path + 'dataset.csv')
@@ -780,15 +736,13 @@ if run_binarize_dataset:
 
     df.drop('Unnamed: 0', axis=1, inplace=True)
 
-    print(df['label'].value_counts())
+    print('\nNumber of samples per class before binarization: \n', df['label'].value_counts())
     for index in df.index:
         if index % 100000 == 0:
             print('{} rows processed'.format(index))
-
         if df['label'][index] != 0:
             df.at[index, 'label'] = 1
-
-    print(df['label'].value_counts())
+    print('\nNumber of samples per class after binarization: \n', df['label'].value_counts())
 
     if save_on_external_storage:
         df.to_csv(ext_storage_path + 'dataset_bin.csv')
@@ -799,12 +753,20 @@ if run_binarize_dataset:
 
 # BALANCE BINARY DATASET & PERFORM ONE-HOT ENCODING ____________________________________________________________________
 if run_balance_binary_dataset:
+    print('\n____Balancing binary dataset____\n')
+
     if save_on_external_storage:
         df = pd.read_csv(ext_storage_path + 'dataset_bin.csv')
     else:
         df = pd.read_csv('dataset_bin.csv')
 
     df.drop('Unnamed: 0', axis=1, inplace=True)
+    df.drop('t_start', axis=1, inplace=True)
+    df.drop('t_end', axis=1, inplace=True)
+    df.drop('ip_src', axis=1, inplace=True)
+    df.drop('ip_dst', axis=1, inplace=True)
+    df.drop('prt_src', axis=1, inplace=True)
+    df.drop('prt_dst', axis=1, inplace=True)
 
     X = df.iloc[:, 0:-1]
     Y = df['label']  # Labels
@@ -828,7 +790,8 @@ if run_balance_binary_dataset:
 
 # BALANCE MULTI-CLASS DATASET & PERFORM ONE-HOT ENCODING _______________________________________________________________
 if run_balance_multiclass_dataset:
-    
+    print('\n____Balancing multi-class dataset____\n')
+
     if save_on_external_storage:
         df = pd.read_csv(ext_storage_path + 'dataset.csv')
     else:
@@ -872,15 +835,6 @@ if run_balance_multiclass_dataset:
     X['label'] = Y
     print('Number of samples per class after RandomUnderSampler: \n', Y.value_counts())
     print(Y)
-    
-    """
-    # define oversampling strategy
-    smote = SMOTE()
-    X, Y = smote.fit_resample(X, Y)
-    X['label'] = Y
-    print("After oversampling: ", X['label'].value_counts())
-    print(X)
-    """
     
     if save_on_external_storage:
         X.to_csv(ext_storage_path + 'dataset_multi.csv')

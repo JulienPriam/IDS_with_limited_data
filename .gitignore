@@ -3,7 +3,6 @@ Dataset_test/bigFlows.pcap
 Py_files/__pycache__
 Py_files/venv
 Py_files/.idea
-Py_files/test.py
 Py_files/*.csv
 Documents/notes.txt
 .venv

@@ -1,31 +1,34 @@
-import keras.optimizers
-import pandas as pd
-from keras import models, layers, utils, backend as K
 import matplotlib.pyplot as plt
-from imblearn.under_sampling import RandomUnderSampler
+import numpy as np
+import pandas as pd
+
+import keras.optimizers
+from keras import models, layers, backend as K
 from keras.saving.legacy.model_config import model_from_json
 from keras.wrappers.scikit_learn import KerasClassifier
-from sklearn.model_selection import train_test_split, RandomizedSearchCV, KFold, StratifiedKFold
+
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import confusion_matrix
-import numpy as np
+
 import seaborn as sn
 
 from visualization import visualize_nn
 
 # SCRIPT PARAMETERS ____________________________________________________________________________________________________
 run_param_optimization = False  # perform RandomSearchCV
-run_NN = True  # train and test the neural network
-plot_network = True  # plot a view of the NN (not advised if RandomSearchCV performing)
-save_model = True  # save the model structure and parameters on the disk / only works if run_NN = True
+run_NN = False  # train the neural network
+plot_network = False  # plot a view of the NN (not advised if RandomSearchCV performing)
+save_model = False  # save the model structure and parameters on the disk / only works if run_NN = True
 load_model = False  # load model from disk and evaluate it on testing set
 
 # hyperparameters tuning
+input_size = 38
 output_size = 13
-layer1_neurons = 60
-layer2_neurons = 30
+layer1_neurons = 30
+layer2_neurons = 25
 batch_size = 128
-epochs = 600
-learning_rate = 0.0001
+epochs = 200
+learning_rate = 0.001
 optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
 # for randomizedSearchCV
@@ -70,14 +73,9 @@ def R2(y, y_hat):
 
 # BUILD MODEL __________________________________________________________________________________________________________
 def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
-    n_features = 30
-    inputs = layers.Input(name="input", shape=(n_features,))  # hidden layer 1
+    inputs = layers.Input(name="input", shape=(input_size,))  # hidden layer 1
     h1 = layers.Dense(name="h1", units=layer1_neurons, activation='relu')(inputs)
-    # h1 = layers.Dropout(name="drop1", rate=0.2)(h1)  # hidden layer 2
     h2 = layers.Dense(name="h2", units=layer2_neurons, activation='relu')(h1)
-    # h3 = layers.Dense(name="h3", units=20, activation='relu')(h2)
-    # h4 = layers.Dense(name="h4", units=10, activation='relu')(h3)
-    # h2 = layers.Dropout(name="drop2", rate=0.2)(h2)  ### layer output
     outputs = layers.Dense(name="output", units=output_size, activation='softmax')(h2)
 
     model = models.Model(inputs=inputs, outputs=outputs, name="DeepNN")
@@ -96,13 +94,10 @@ def build_classifier(layer1_neurons, layer2_neurons, learning_rate):
 
 
 # PREPARE THE DATASET __________________________________________________________________________________________________
-df = pd.read_csv('dataset_multi.csv') #.iloc[0:300000]
-print(df['label'].value_counts())
-
-# REMOVE SOME FEATURES ___________________________
+df = pd.read_csv('dataset_multi.csv')
 df.drop('Unnamed: 0', axis=1, inplace=True)
+print('\nNumber of samples per class: \n', df['label'].value_counts())
 
-print(df)
 
 X = df.iloc[:, 0:-1]
 Y = df['label']  # Labels
@@ -110,12 +105,10 @@ Y = pd.get_dummies(Y, columns=['label'])
 
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
 X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, test_size=0.2)
-print("Dataset has been split")
-
-print('\n Partition of dataset:')
+print("\nDataset has been split as follow: ")
 print('Number of samples per class in training set: \n{}'.format(y_train.value_counts()))
 print('Number of samples per class in validation set: \n{}'.format(y_validation.value_counts()))
-print('Number of samples per class in validation set: \n{} \n'.format(y_test.value_counts()))
+print('Number of samples per class in testing set: \n{} \n'.format(y_test.value_counts()))
 
 X_train = X_train.values
 y_train = y_train.values
@@ -201,10 +194,10 @@ if run_NN:
     y_prediction = model.predict(X_validation)
     y_prediction = np.argmax(y_prediction, axis = 1)
     y_validation=np.argmax(y_validation, axis=1)
+
     #Create confusion matrix and normalizes it over predicted (columns)
     result = confusion_matrix(y_validation, y_prediction , normalize='pred')
     df_cm = pd.DataFrame(result, range(output_size), range(output_size))
-    # plt.figure(figsize=(10,7))
     sn.set(font_scale=1) # for label size
     sn.heatmap(df_cm, annot=True, annot_kws={"size": 12}) # font size
 
@@ -232,14 +225,14 @@ if load_model:
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
-    # load weights into new model
+    # load weights into the model
     loaded_model.load_weights("model_multi.h5")
     print("\nLoaded model from disk")
 
     # evaluate loaded model on test data
     loaded_model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', F1])
     score = loaded_model.evaluate(X_test, y_test, verbose=0)
-    print("{}: {}%".format(loaded_model.metrics_names[1], score[1] * 100))
+    print("\n{}: {}%".format(loaded_model.metrics_names[1], score[1] * 100))
 
     # print confusion matrix
     #Predict
