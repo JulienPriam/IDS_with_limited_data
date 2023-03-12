@@ -1,2 +1,1 @@
-# Strath_Project
-AI (Machine Learning) for Cyber Security using Limited Data
+AI (Machine Learning) for Intrusion Detection System using Limited Data
